@@ -1,0 +1,90 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #121213;
+  --tile-border-empty: #3a3a3c;
+  --tile-border-filled: #565758;
+  --correct: #538d4e;
+  --present: #b59f3b;
+  --absent: #3a3a3c;
+  --key-bg: #818384;
+  --header-border: #3a3a3c;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: #fff;
+  font-family: 'Clear Sans', 'Helvetica Neue', Arial, sans-serif;
+  min-height: 100vh;
+}
+
+/* Tile flip animation */
+.tile-flip {
+  animation: tileFlip 0.5s ease forwards;
+}
+
+@keyframes tileFlip {
+  0%   { transform: rotateX(0deg); }
+  49%  { transform: rotateX(-90deg); }
+  50%  { transform: rotateX(-90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+/* Tile pop when typing */
+.tile-pop {
+  animation: tilePop 0.1s ease;
+}
+
+@keyframes tilePop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.1); }
+  100% { transform: scale(1); }
+}
+
+/* Row shake on invalid */
+.row-shake {
+  animation: rowShake 0.5s ease;
+}
+
+@keyframes rowShake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-4px); }
+  30%, 70% { transform: translateX(4px); }
+}
+
+/* Win bounce */
+.tile-bounce {
+  animation: tileBounce 1s ease;
+}
+
+@keyframes tileBounce {
+  0%, 20%  { transform: translateY(0); }
+  40%      { transform: translateY(-20px); }
+  50%      { transform: translateY(5px); }
+  60%      { transform: translateY(-10px); }
+  80%      { transform: translateY(2px); }
+  100%     { transform: translateY(0); }
+}
+
+/* Toast slide in */
+.toast-enter {
+  animation: toastSlide 0.3s ease;
+}
+
+@keyframes toastSlide {
+  0%   { transform: translateY(-20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a1b; }
+::-webkit-scrollbar-thumb { background: #3a3a3c; border-radius: 3px; }

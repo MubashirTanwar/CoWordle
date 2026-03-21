@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx create-next-app@latest . --js --tailwind --eslint --app --src-dir --import-alias=\"@/*\" --no-turbopack)",
+      "Bash(npx create-next-app@latest . --js --tailwind --eslint --app --src-dir --import-alias=\"@/*\" --no-turbopack --yes)",
+      "Bash(npm install:*)",
+      "Bash(npx next:*)",
+      "Bash(node index.js)",
+      "Bash(netstat -ano)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c \"taskkill /PID 21996 /F\")",
+      "Bash(cmd /c taskkill /PID 21996 /F)",
+      "Bash(kill 21996)",
+      "Bash(npx kill-port:*)"
+    ]
+  }
+}
