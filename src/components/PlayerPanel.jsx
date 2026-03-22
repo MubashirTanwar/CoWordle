@@ -1,34 +1,54 @@
 'use client';
 
-export default function PlayerPanel({ players, finishedPlayers, currentPlayerId, roundNumber, totalRounds }) {
+export default function PlayerPanel({ players, finishedPlayers, playerGuesses, currentPlayerId, roundNumber, totalRounds }) {
   return (
-    <div className="bg-[#1a1a1b] border border-[#3a3a3c] rounded-lg p-4 min-w-[180px]">
+    <div className="bg-[#1a1a1b] border border-[#3a3a3c] rounded-lg p-4 min-w-[200px]">
       <div className="text-xs text-[#818384] uppercase tracking-widest mb-3">
-        Players • Round {roundNumber}/{totalRounds}
+        Players · Round {roundNumber}/{totalRounds}
       </div>
-      <div className="space-y-2">
+      <div className="space-y-3">
         {players.filter(p => p.isConnected !== false).map((player) => {
           const finished = finishedPlayers[player.playerId];
+          const guessInfo = playerGuesses?.[player.playerId];
           const isMe = player.playerId === currentPlayerId;
           return (
             <div
               key={player.playerId}
-              className={`flex items-center justify-between gap-2 p-2 rounded ${
-                isMe ? 'bg-[#2a2a2b]' : ''
-              }`}
+              className={`p-2 rounded ${isMe ? 'bg-[#2a2a2b]' : ''}`}
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <StatusIcon finished={finished} />
-                <span className={`text-sm truncate ${isMe ? 'text-white font-bold' : 'text-[#c0c0c0]'}`}>
-                  {player.playerName}
-                  {isMe && <span className="text-[#818384] font-normal ml-1">(you)</span>}
-                  {player.isHost && <span className="text-[10px] text-[#b59f3b] ml-1">👑</span>}
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <StatusIcon finished={finished} />
+                  <span className={`text-sm truncate ${isMe ? 'text-white font-bold' : 'text-[#c0c0c0]'}`}>
+                    {player.playerName}
+                    {isMe && <span className="text-[#818384] font-normal ml-1 text-xs">(you)</span>}
+                    {player.isHost && <span className="text-[10px] text-[#b59f3b] ml-1">👑</span>}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {finished ? (
+                    <span className="text-xs font-bold text-[#818384]">{finished.points}pt</span>
+                  ) : guessInfo ? (
+                    <span className="text-[10px] text-[#818384]">{guessInfo.tryNumber}/6</span>
+                  ) : null}
+                </div>
               </div>
-              {finished && (
-                <span className="text-xs text-[#818384] whitespace-nowrap">
-                  {finished.points}pt
-                </span>
+
+              {/* Latest guess color dots — only visible to other players */}
+              {!isMe && !finished && guessInfo?.result && (
+                <div className="flex gap-[3px] mt-1.5 ml-7">
+                  {guessInfo.result.map((r, i) => (
+                    <div
+                      key={i}
+                      className="w-3 h-3 rounded-sm"
+                      style={{
+                        backgroundColor:
+                          r === 'correct' ? '#538d4e' :
+                          r === 'present' ? '#b59f3b' : '#3a3a3c',
+                      }}
+                    />
+                  ))}
+                </div>
               )}
             </div>
           );

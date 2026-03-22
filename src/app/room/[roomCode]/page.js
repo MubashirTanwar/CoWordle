@@ -12,6 +12,7 @@ import LobbyView from '@/components/LobbyView';
 import RoundEndView from '@/components/RoundEndView';
 import GameEndView from '@/components/GameEndView';
 import ToastContainer from '@/components/Toast';
+import { FlyingEmojis, EmojiBar, useFlyingEmojis } from '@/components/EmojiReactions';
 
 function isValidGuess(word) {
   return /^[A-Za-z]{5}$/.test(word);
@@ -65,6 +66,7 @@ export default function RoomPage() {
   const { roomCode } = useParams();
   const router = useRouter();
   const { toasts, addToast } = useToasts();
+  const { emojis, addEmoji } = useFlyingEmojis();
 
   const [playerId, setPlayerId] = useState(null);
   const [playerName, setPlayerName] = useState('');
@@ -82,6 +84,7 @@ export default function RoomPage() {
   const [shakeRow, setShakeRow] = useState(null);
   const [revealRow, setRevealRow] = useState(null);
   const [finishedPlayers, setFinishedPlayers] = useState({});
+  const [playerGuesses, setPlayerGuesses] = useState({}); // { [playerId]: { result, tryNumber } }
 
   const socketRef = useRef(null);
   const finishedRef = useRef(false);
@@ -163,12 +166,22 @@ export default function RoomPage() {
       setRoom((prev) => prev ? { ...prev, settings } : prev);
     });
 
+    socket.on('player-guessed', ({ playerId: pid, result, tryNumber }) => {
+      setPlayerGuesses((prev) => ({ ...prev, [pid]: { result, tryNumber } }));
+    });
+
+    socket.on('emoji-reaction', ({ playerName: pname, emoji }) => {
+      addEmoji(emoji);
+      addToast(`${pname} ${emoji}`);
+    });
+
     socket.on('game-started', ({ roundNumber, totalRounds, timeLimit }) => {
       setRoundInfo({ roundNumber, totalRounds, timeLimit });
       setGuesses([]);
       setCurrentGuess('');
       setFinished(false);
       finishedRef.current = false;
+      setPlayerGuesses({});
       setFinishedPlayers({});
       setRoundEndData(null);
       setPhase('playing');
@@ -254,6 +267,8 @@ export default function RoomPage() {
       socket.off('player-finished');
       socket.off('round-ended');
       socket.off('game-ended');
+      socket.off('player-guessed');
+      socket.off('emoji-reaction');
       socket.off('invalid-word');
       socket.off('error');
     };
@@ -353,6 +368,7 @@ export default function RoomPage() {
       </header>
 
       <ToastContainer toasts={toasts} />
+      <FlyingEmojis emojis={emojis} />
 
       <main className="flex-1 flex flex-col items-center overflow-auto">
         {phase === 'lobby' && (
@@ -391,12 +407,21 @@ export default function RoomPage() {
                 onKey={handleKey}
                 disabled={finished}
               />
+
+              {/* Emoji bar */}
+              <div className="w-full border-t border-[#3a3a3c] pt-3 mt-1">
+                <EmojiBar onSend={(emoji) => {
+                  socketRef.current?.emit('send-emoji', { roomCode, playerName, emoji });
+                  addEmoji(emoji);
+                }} />
+              </div>
             </div>
 
             <div className="lg:pt-16 w-full lg:w-auto">
               <PlayerPanel
                 players={room?.players || []}
                 finishedPlayers={finishedPlayers}
+                playerGuesses={playerGuesses}
                 currentPlayerId={playerId}
                 roundNumber={roundInfo.roundNumber}
                 totalRounds={roundInfo.totalRounds}

@@ -375,6 +375,13 @@ module.exports = function setupGameHandler(io) {
 
         socket.emit('guess-result', { guess: guessUpper, result, isCorrect });
 
+        // Broadcast latest guess colors + try count to all OTHER players (no word revealed)
+        socket.to(roomCode).emit('player-guessed', {
+          playerId,
+          result,
+          tryNumber: playerState.guesses.length,
+        });
+
         if (isCorrect || playerState.guesses.length >= 6) {
           playerState.finished = true;
           playerState.solved = isCorrect;
@@ -409,6 +416,11 @@ module.exports = function setupGameHandler(io) {
         console.error('submit-guess error:', err);
         socket.emit('error', { message: 'Failed to process guess' });
       }
+    });
+
+    // ── Emoji Reaction ──
+    socket.on('send-emoji', ({ roomCode, playerName, emoji }) => {
+      io.to(roomCode).emit('emoji-reaction', { playerName, emoji });
     });
 
     // ── Disconnect ──
