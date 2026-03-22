@@ -438,8 +438,13 @@ module.exports = function setupGameHandler(io) {
           }
         }
       } catch (err) {
-        // Don't crash on transient DB errors during disconnect
-        if (err.name === 'MongoNetworkError' || err.name === 'MongoServerSelectionError') return;
+        // Don't crash on transient network errors during disconnect
+        if (
+          err.name === 'MongoNetworkError' ||
+          err.name === 'MongoServerSelectionError' ||
+          err.code === 'ECONNRESET' ||
+          err.code === 'ENOTFOUND'
+        ) return;
         console.error('disconnect error:', err);
       }
     });
