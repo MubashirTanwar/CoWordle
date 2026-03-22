@@ -1,7 +1,8 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 
 const EMOJIS = ['🔥', '😂', '👏', '🤯', '😭', '💀', '🎉', '👀', '😤', '🫡', '💪', '🥶'];
+const EMOJI_COOLDOWN_MS = 10000;
 
 // ─── Flying emoji overlay ─────────────────────────────────────────────────────
 export function FlyingEmojis({ emojis }) {
@@ -27,14 +28,27 @@ function FlyingEmoji({ emoji, x }) {
 
 // ─── Emoji picker bar ─────────────────────────────────────────────────────────
 export function EmojiBar({ onSend }) {
+  const lastSentRef = useRef(0);
+  const [cooldown, setCooldown] = useState(false);
+
+  function handleSend(emoji) {
+    const now = Date.now();
+    if (now - lastSentRef.current < EMOJI_COOLDOWN_MS) return;
+    lastSentRef.current = now;
+    onSend(emoji);
+    setCooldown(true);
+    setTimeout(() => setCooldown(false), EMOJI_COOLDOWN_MS);
+  }
+
   return (
     <div className="flex gap-1 flex-wrap justify-center">
       {EMOJIS.map((emoji) => (
         <button
           key={emoji}
           type="button"
-          onClick={() => onSend(emoji)}
-          className="text-xl w-9 h-9 flex items-center justify-center rounded hover:bg-[#3a3a3c] transition-colors active:scale-125 transition-transform"
+          onClick={() => handleSend(emoji)}
+          disabled={cooldown}
+          className="text-xl w-9 h-9 flex items-center justify-center rounded hover:bg-[#3a3a3c] transition-colors active:scale-125 transition-transform disabled:opacity-40 disabled:cursor-not-allowed"
         >
           {emoji}
         </button>

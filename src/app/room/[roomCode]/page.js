@@ -121,18 +121,18 @@ export default function RoomPage() {
     const socket = connectSocket();
     socketRef.current = socket;
 
-    socket.on('room-created', ({ room: r }) => {
+    // Named handlers so we can cleanly remove exactly these listeners
+    const onRoomCreated = ({ room: r }) => {
       setRoom(r);
       setPhase('lobby');
-    });
+    };
 
-    socket.on('room-joined', ({ room: r }) => {
+    const onRoomJoined = ({ room: r }) => {
       setRoom(r);
       setPhase('lobby');
-    });
+    };
 
-    // ── Sync state on refresh ──
-    socket.on('sync-state', ({ room: r, phase: serverPhase, roundInfo: ri, guesses: g, finished: fin, gameEndData: ged }) => {
+    const onSyncState = ({ room: r, phase: serverPhase, roundInfo: ri, guesses: g, finished: fin, gameEndData: ged }) => {
       setRoom(r);
       if (serverPhase === 'lobby') {
         setPhase('lobby');
@@ -150,32 +150,32 @@ export default function RoomPage() {
         if (ged) setGameEndData(ged);
         setPhase('game-end');
       }
-    });
+    };
 
-    socket.on('player-joined', ({ players, playerName: pname }) => {
+    const onPlayerJoined = ({ players, playerName: pname }) => {
       setRoom((prev) => prev ? { ...prev, players } : prev);
       if (pname !== name) addToast(`${pname} joined the room`);
-    });
+    };
 
-    socket.on('player-left', ({ players, playerName: pname }) => {
+    const onPlayerLeft = ({ players, playerName: pname }) => {
       setRoom((prev) => prev ? { ...prev, players } : prev);
       addToast(`${pname} left`);
-    });
+    };
 
-    socket.on('settings-updated', ({ settings }) => {
+    const onSettingsUpdated = ({ settings }) => {
       setRoom((prev) => prev ? { ...prev, settings } : prev);
-    });
+    };
 
-    socket.on('player-guessed', ({ playerId: pid, result, tryNumber }) => {
+    const onPlayerGuessed = ({ playerId: pid, result, tryNumber }) => {
       setPlayerGuesses((prev) => ({ ...prev, [pid]: { result, tryNumber } }));
-    });
+    };
 
-    socket.on('emoji-reaction', ({ playerName: pname, emoji }) => {
+    const onEmojiReaction = ({ emoji }) => {
       addEmoji(emoji);
-      addToast(`${pname} ${emoji}`);
-    });
+      // No toast — just the flying emoji
+    };
 
-    socket.on('game-started', ({ roundNumber, totalRounds, timeLimit }) => {
+    const onGameStarted = ({ roundNumber, totalRounds, timeLimit }) => {
       setRoundInfo({ roundNumber, totalRounds, timeLimit });
       setGuesses([]);
       setCurrentGuess('');
@@ -186,9 +186,9 @@ export default function RoomPage() {
       setRoundEndData(null);
       setPhase('playing');
       addToast(`Round ${roundNumber} of ${totalRounds} — GO!`);
-    });
+    };
 
-    socket.on('guess-result', ({ guess, result, isCorrect }) => {
+    const onGuessResult = ({ guess, result, isCorrect }) => {
       setGuesses((prev) => {
         const newGuesses = [...prev];
         const lastIdx = newGuesses.length - 1;
@@ -212,65 +212,84 @@ export default function RoomPage() {
           return prev;
         });
       }
-    });
+    };
 
-    socket.on('player-finished', ({ playerName: pname, playerId: pid, solved, tries, timeTaken, points }) => {
-      setFinishedPlayers((prev) => ({ ...prev, [pid]: { solved, tries, timeTaken, points } }));
+    const onPlayerFinished = ({ playerName: pname, playerId: pid, solved, tries, points }) => {
+      setFinishedPlayers((prev) => ({ ...prev, [pid]: { solved, tries, points } }));
       if (pid !== playerId) {
         if (solved) addToast(`🟩 ${pname} solved it in ${tries} ${tries === 1 ? 'try' : 'tries'}! (+${points})`);
         else addToast(`${pname} couldn't get it this round`);
       }
-    });
+    };
 
-    socket.on('round-ended', ({ roundNumber, word, results, isLastRound }) => {
+    const onRoundEnded = ({ roundNumber, word, results, isLastRound }) => {
       setRoundEndData({ roundNumber, word, results, isLastRound });
       setPhase('round-end');
-    });
+    };
 
-    socket.on('game-ended', ({ finalScores, rounds }) => {
+    const onGameEnded = ({ finalScores, rounds }) => {
       setGameEndData({ finalScores, rounds });
       setPhase('game-end');
-    });
+    };
 
-    socket.on('invalid-word', ({ guess }) => {
+    const onInvalidWord = ({ guess }) => {
       setGuesses((prev) => prev.filter((g) => !g.pending));
       setCurrentGuess(guess);
       setGuesses((prev) => { setShakeRow(prev.length); return prev; });
       setTimeout(() => setShakeRow(null), 600);
       addToast('Not in word list');
-    });
+    };
 
-    socket.on('error', ({ message }) => {
+    const onError = ({ message }) => {
       addToast(`⚠️ ${message}`);
-    });
+    };
+
+    socket.on('room-created', onRoomCreated);
+    socket.on('room-joined', onRoomJoined);
+    socket.on('sync-state', onSyncState);
+    socket.on('player-joined', onPlayerJoined);
+    socket.on('player-left', onPlayerLeft);
+    socket.on('settings-updated', onSettingsUpdated);
+    socket.on('player-guessed', onPlayerGuessed);
+    socket.on('emoji-reaction', onEmojiReaction);
+    socket.on('game-started', onGameStarted);
+    socket.on('guess-result', onGuessResult);
+    socket.on('player-finished', onPlayerFinished);
+    socket.on('round-ended', onRoundEnded);
+    socket.on('game-ended', onGameEnded);
+    socket.on('invalid-word', onInvalidWord);
+    socket.on('error', onError);
 
     // ── Connect: try sync first (handles refresh), fall back to join ──
     socket.emit('request-sync', { roomCode, playerId });
 
-    // If sync says room not found, fall back to join-room
-    const onSyncError = ({ message }) => {
+    // One-time: if sync says room not found, fall back to join-room
+    const onSyncNotFound = ({ message }) => {
       if (message === 'Room not found') {
+        socket.off('error', onError); // temporarily remove general handler
         socket.emit('join-room', { roomCode, playerName: name, playerId });
+        socket.on('error', onError); // re-attach
       }
     };
-    socket.once('error', onSyncError);
+    socket.once('error', onSyncNotFound);
 
     return () => {
-      socket.off('room-created');
-      socket.off('room-joined');
-      socket.off('sync-state');
-      socket.off('player-joined');
-      socket.off('player-left');
-      socket.off('settings-updated');
-      socket.off('game-started');
-      socket.off('guess-result');
-      socket.off('player-finished');
-      socket.off('round-ended');
-      socket.off('game-ended');
-      socket.off('player-guessed');
-      socket.off('emoji-reaction');
-      socket.off('invalid-word');
-      socket.off('error');
+      socket.off('room-created', onRoomCreated);
+      socket.off('room-joined', onRoomJoined);
+      socket.off('sync-state', onSyncState);
+      socket.off('player-joined', onPlayerJoined);
+      socket.off('player-left', onPlayerLeft);
+      socket.off('settings-updated', onSettingsUpdated);
+      socket.off('player-guessed', onPlayerGuessed);
+      socket.off('emoji-reaction', onEmojiReaction);
+      socket.off('game-started', onGameStarted);
+      socket.off('guess-result', onGuessResult);
+      socket.off('player-finished', onPlayerFinished);
+      socket.off('round-ended', onRoundEnded);
+      socket.off('game-ended', onGameEnded);
+      socket.off('invalid-word', onInvalidWord);
+      socket.off('error', onError);
+      socket.off('error', onSyncNotFound);
     };
   }, [playerId, showNamePrompt]);
 

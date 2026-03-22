@@ -212,6 +212,12 @@ module.exports = function setupGameHandler(io) {
           });
         }
 
+        // If room thinks it's playing but in-memory state is gone (server restart), reset to lobby
+        if (room.status === 'playing' && !gameState[roomCode]) {
+          room.status = 'lobby';
+          await room.save();
+        }
+
         const syncPayload = { room: room.toObject(), phase: room.status };
 
         if (room.status === 'playing' && gameState[roomCode]) {
@@ -420,7 +426,7 @@ module.exports = function setupGameHandler(io) {
 
     // ── Emoji Reaction ──
     socket.on('send-emoji', ({ roomCode, playerName, emoji }) => {
-      io.to(roomCode).emit('emoji-reaction', { playerName, emoji });
+      socket.to(roomCode).emit('emoji-reaction', { playerName, emoji });
     });
 
     // ── Disconnect ──
