@@ -31,9 +31,13 @@ app.get('/health', (req, res) => res.json({ ok: true }));
 // Connect to MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/cowordle';
 mongoose
-  .connect(MONGODB_URI)
+  .connect(MONGODB_URI, { serverSelectionTimeoutMS: 10000 })
   .then(() => console.log('✅ MongoDB connected'))
-  .catch((err) => console.error('❌ MongoDB error:', err));
+  .catch((err) => console.error('❌ MongoDB error:', err.message));
+
+// Auto-reconnect on connection drop
+mongoose.connection.on('disconnected', () => console.warn('⚠️  MongoDB disconnected, retrying...'));
+mongoose.connection.on('reconnected', () => console.log('✅ MongoDB reconnected'));
 
 // Setup socket handlers
 setupGameHandler(io);

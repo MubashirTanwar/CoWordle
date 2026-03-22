@@ -192,6 +192,65 @@ async function endGame(io, roomCode) {
 
 module.exports = function setupGameHandler(io) {
   io.on('connection', (socket) => {
+    // ── Sync State (reconnect / refresh) ──
+    socket.on('request-sync', async ({ roomCode, playerId }) => {
+      try {
+        const room = await Room.findOne({ roomCode });
+        if (!room) { socket.emit('error', { message: 'Room not found' }); return; }
+
+        // Re-attach socket
+        const player = room.players.find((p) => p.playerId === playerId);
+        if (player) {
+          player.socketId = socket.id;
+          player.isConnected = true;
+          await room.save();
+          socket.join(roomCode);
+          // Notify others this player is back
+          socket.to(roomCode).emit('player-joined', {
+            players: room.toObject().players,
+            playerName: player.playerName,
+          });
+        }
+
+        const syncPayload = { room: room.toObject(), phase: room.status };
+
+        if (room.status === 'playing' && gameState[roomCode]) {
+          const state = gameState[roomCode];
+          const elapsed = Math.floor((Date.now() - state.roundStartTime) / 1000);
+          syncPayload.roundInfo = {
+            roundNumber: state.roundNumber,
+            totalRounds: room.settings.rounds,
+            timeLimit: state.timeLimit,
+            elapsed,
+          };
+          const pState = state.players[playerId];
+          if (pState) {
+            syncPayload.guesses = pState.guesses;
+            syncPayload.finished = pState.finished;
+          }
+        }
+
+        if (room.status === 'finished' && room.gameSessionId) {
+          const session = await GameSession.findById(room.gameSessionId);
+          if (session) {
+            syncPayload.gameEndData = {
+              finalScores: session.finalScores,
+              rounds: session.rounds.map((r) => ({
+                roundNumber: r.roundNumber,
+                word: r.word,
+                results: r.playerResults,
+              })),
+            };
+          }
+        }
+
+        socket.emit('sync-state', syncPayload);
+      } catch (err) {
+        console.error('request-sync error:', err);
+        socket.emit('error', { message: 'Failed to sync state' });
+      }
+    });
+
     // ── Create Room ──
     socket.on('create-room', async ({ playerName, playerId, settings }) => {
       try {
@@ -370,6 +429,8 @@ module.exports = function setupGameHandler(io) {
           }
         }
       } catch (err) {
+        // Don't crash on transient DB errors during disconnect
+        if (err.name === 'MongoNetworkError' || err.name === 'MongoServerSelectionError') return;
         console.error('disconnect error:', err);
       }
     });

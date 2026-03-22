@@ -32,7 +32,8 @@ export default function Board({ guesses, currentGuess, shakeRow, revealRow }) {
   }
 
   return (
-    <div className="flex flex-col gap-[5px] p-2">
+    // Board fills available width up to 350px; tiles scale via flex
+    <div className="flex flex-col gap-[5px] w-full max-w-[350px] mx-auto px-2">
       {rows}
     </div>
   );
@@ -40,7 +41,7 @@ export default function Board({ guesses, currentGuess, shakeRow, revealRow }) {
 
 function Row({ letters, results, isRevealing, isShaking, submitted }) {
   return (
-    <div className={`flex gap-[5px] ${isShaking ? 'row-shake' : ''}`}>
+    <div className={`flex gap-[5px] w-full ${isShaking ? 'row-shake' : ''}`}>
       {Array.from({ length: COLS }).map((_, i) => (
         <Tile
           key={i}
@@ -94,7 +95,7 @@ function Tile({ letter, result, isRevealing, delay, submitted }) {
   return (
     <div
       ref={tileRef}
-      className={`w-14 h-14 flex items-center justify-center border-2 ${borderStyle} text-white text-2xl font-bold uppercase select-none`}
+      className={`flex-1 aspect-square flex items-center justify-center border-2 ${borderStyle} text-white text-xl sm:text-2xl font-bold uppercase select-none`}
       style={{
         backgroundColor: bgColor,
         transition: result ? `background-color 0.1s ease ${delay}ms` : undefined,

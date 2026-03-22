@@ -10,7 +10,7 @@ const ROWS = [
 export default function Keyboard({ guesses, onKey, disabled }) {
   const keyColors = {};
   for (const { word, result } of guesses) {
-    if (!result) continue; // skip pending guesses
+    if (!result) continue;
     for (let i = 0; i < word.length; i++) {
       const letter = word[i];
       const r = result[i];
@@ -23,17 +23,19 @@ export default function Keyboard({ guesses, onKey, disabled }) {
   function getKeyStyle(key) {
     const color = keyColors[key];
     switch (color) {
-      case 'correct': return 'bg-[#538d4e] text-white border-transparent';
-      case 'present': return 'bg-[#b59f3b] text-white border-transparent';
-      case 'absent':  return 'bg-[#3a3a3c] text-white border-transparent';
-      default:        return 'bg-[#818384] text-white border-transparent hover:bg-[#9a9b9c]';
+      case 'correct': return 'bg-[#538d4e] text-white';
+      case 'present': return 'bg-[#b59f3b] text-white';
+      case 'absent':  return 'bg-[#3a3a3c] text-white';
+      default:        return 'bg-[#818384] text-white hover:bg-[#9a9b9c]';
     }
   }
 
   return (
-    <div className="flex flex-col gap-[6px] items-center w-full max-w-[500px] select-none">
+    // w-full ensures keyboard never exceeds screen; px-1 gives slight breathing room
+    <div className="flex flex-col gap-[5px] items-center w-full px-1 select-none">
       {ROWS.map((row, ri) => (
-        <div key={ri} className="flex gap-[6px]">
+        // Each row fills full width, keys grow to fill evenly
+        <div key={ri} className="flex gap-[5px] w-full">
           {row.map((key) => {
             const isWide = key === 'ENTER' || key === '⌫';
             return (
@@ -41,10 +43,10 @@ export default function Keyboard({ guesses, onKey, disabled }) {
                 key={key}
                 onClick={() => !disabled && onKey(key)}
                 disabled={disabled}
+                style={{ flex: isWide ? 1.5 : 1 }}
                 className={`
-                  flex items-center justify-center rounded font-bold text-sm uppercase
-                  border-2 cursor-pointer transition-colors
-                  ${isWide ? 'px-3 min-w-[65px] h-14 text-xs' : 'w-[43px] h-14'}
+                  min-w-0 h-14 flex items-center justify-center rounded
+                  font-bold text-xs uppercase cursor-pointer transition-colors
                   ${getKeyStyle(key)}
                   ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
                 `}
