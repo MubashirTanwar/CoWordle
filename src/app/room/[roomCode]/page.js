@@ -133,6 +133,13 @@ export default function RoomPage() {
     };
 
     const onSyncState = ({ room: r, phase: serverPhase, roundInfo: ri, guesses: g, finished: fin, gameEndData: ged }) => {
+      // If we're not in the room's player list, join first (e.g. share link visitor)
+      const amInRoom = r.players?.some((p) => p.playerId === playerId);
+      if (!amInRoom) {
+        socket.emit('join-room', { roomCode, playerName: name, playerId });
+        return; // wait for room-joined response
+      }
+
       setRoom(r);
       if (serverPhase === 'lobby') {
         setPhase('lobby');
@@ -260,18 +267,8 @@ export default function RoomPage() {
     socket.on('invalid-word', onInvalidWord);
     socket.on('error', onError);
 
-    // ── Connect: try sync first (handles refresh), fall back to join ──
+    // ── Connect: always sync first; onSyncState will join-room if player not in room ──
     socket.emit('request-sync', { roomCode, playerId });
-
-    // One-time: if sync says room not found, fall back to join-room
-    const onSyncNotFound = ({ message }) => {
-      if (message === 'Room not found') {
-        socket.off('error', onError); // temporarily remove general handler
-        socket.emit('join-room', { roomCode, playerName: name, playerId });
-        socket.on('error', onError); // re-attach
-      }
-    };
-    socket.once('error', onSyncNotFound);
 
     return () => {
       socket.off('room-created', onRoomCreated);
@@ -289,7 +286,6 @@ export default function RoomPage() {
       socket.off('game-ended', onGameEnded);
       socket.off('invalid-word', onInvalidWord);
       socket.off('error', onError);
-      socket.off('error', onSyncNotFound);
     };
   }, [playerId, showNamePrompt]);
 
