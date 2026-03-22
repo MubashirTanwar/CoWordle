@@ -1,10 +1,13 @@
 'use client';
 import { useState, useEffect, useRef } from 'react';
 
-export default function Timer({ timeLimit, onExpire, active }) {
+// timeLimit  = remaining seconds (what to count down from)
+// maxTime    = original total seconds (used to draw the arc proportion correctly)
+export default function Timer({ timeLimit, maxTime, onExpire }) {
   const [timeLeft, setTimeLeft] = useState(timeLimit);
   const startRef = useRef(Date.now());
   const firedRef = useRef(false);
+  const total = maxTime ?? timeLimit; // fallback: if no maxTime, arc starts full (new round)
 
   // Reset when a new round starts (timeLimit changes)
   useEffect(() => {
@@ -14,7 +17,6 @@ export default function Timer({ timeLimit, onExpire, active }) {
   }, [timeLimit]);
 
   // Always run the visual countdown — server handles actual expiry
-  // We stop calling onExpire once fired, but keep showing the clock for all players
   useEffect(() => {
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startRef.current) / 1000);
@@ -28,9 +30,9 @@ export default function Timer({ timeLimit, onExpire, active }) {
     }, 250);
 
     return () => clearInterval(interval);
-  }, [timeLimit]); // only restarts when round changes, not when active changes
+  }, [timeLimit]);
 
-  const pct = timeLeft / timeLimit;
+  const pct = timeLeft / total; // arc relative to original total, not remaining
   const mins = Math.floor(timeLeft / 60);
   const secs = timeLeft % 60;
   const display = `${mins > 0 ? `${mins}:` : ''}${String(secs).padStart(2, '0')}`;

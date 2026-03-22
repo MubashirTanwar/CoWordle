@@ -229,9 +229,11 @@ module.exports = function setupGameHandler(io) {
             timeLimit: state.timeLimit,
             elapsed,
           };
-          // Restore player to in-memory game state if they disconnected mid-game
+          // Restore player (re-connect): clear disconnected flag, preserve existing guesses
           if (!state.players[playerId]) {
             state.players[playerId] = { guesses: [], finished: false, solved: false, timeTaken: null, points: 0 };
+          } else {
+            state.players[playerId].disconnected = false;
           }
           const pState = state.players[playerId];
           syncPayload.guesses = pState.guesses;
@@ -410,9 +412,9 @@ module.exports = function setupGameHandler(io) {
             points: playerState.points,
           });
 
-          // Check if all active players finished
-          const activePlayers = Object.values(state.players);
-          const allDone = activePlayers.every((p) => p.finished);
+          // Check if all connected players finished
+          const activePlayers = Object.values(state.players).filter((p) => !p.disconnected);
+          const allDone = activePlayers.length > 0 && activePlayers.every((p) => p.finished);
           if (allDone) {
             clearTimeout(state.timer);
             endRound(io, roomCode);
@@ -444,12 +446,14 @@ module.exports = function setupGameHandler(io) {
             playerName: player.playerName,
           });
 
-          // Remove from in-memory state if in game
+          // Mark as disconnected but keep guesses so they're restored on reconnect
+          if (gameState[room.roomCode]?.players[player.playerId]) {
+            gameState[room.roomCode].players[player.playerId].disconnected = true;
+          }
+          // End round early if all still-connected players are done
           if (gameState[room.roomCode]) {
-            delete gameState[room.roomCode].players[player.playerId];
-            // Check if remaining players all finished
-            const remaining = Object.values(gameState[room.roomCode].players);
-            if (remaining.length > 0 && remaining.every((p) => p.finished)) {
+            const connected = Object.values(gameState[room.roomCode].players).filter((p) => !p.disconnected);
+            if (connected.length > 0 && connected.every((p) => p.finished)) {
               clearTimeout(gameState[room.roomCode].timer);
               endRound(io, room.roomCode);
             }

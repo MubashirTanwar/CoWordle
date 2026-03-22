@@ -74,7 +74,7 @@ export default function RoomPage() {
 
   const [phase, setPhase] = useState('connecting');
   const [room, setRoom] = useState(null);
-  const [roundInfo, setRoundInfo] = useState({ roundNumber: 1, totalRounds: 3, timeLimit: 120 });
+  const [roundInfo, setRoundInfo] = useState({ roundNumber: 1, totalRounds: 3, timeLimit: 120, originalTimeLimit: 120 });
   const [roundEndData, setRoundEndData] = useState(null);
   const [gameEndData, setGameEndData] = useState(null);
 
@@ -145,7 +145,7 @@ export default function RoomPage() {
         setPhase('lobby');
       } else if (serverPhase === 'playing') {
         if (ri) {
-          setRoundInfo({ roundNumber: ri.roundNumber, totalRounds: ri.totalRounds, timeLimit: ri.timeLimit - ri.elapsed });
+          setRoundInfo({ roundNumber: ri.roundNumber, totalRounds: ri.totalRounds, timeLimit: ri.timeLimit - ri.elapsed, originalTimeLimit: ri.timeLimit });
         }
         setGuesses(g || []);
         setFinished(fin || false);
@@ -183,7 +183,7 @@ export default function RoomPage() {
     };
 
     const onGameStarted = ({ roundNumber, totalRounds, timeLimit }) => {
-      setRoundInfo({ roundNumber, totalRounds, timeLimit });
+      setRoundInfo({ roundNumber, totalRounds, timeLimit, originalTimeLimit: timeLimit });
       setGuesses([]);
       setCurrentGuess('');
       setFinished(false);
@@ -403,6 +403,7 @@ export default function RoomPage() {
               <div className="flex items-center gap-4">
                 <Timer
                   timeLimit={roundInfo.timeLimit}
+                  maxTime={roundInfo.originalTimeLimit}
                   onExpire={() => {}}
                 />
                 {finished && (
