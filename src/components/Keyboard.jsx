@@ -41,6 +41,7 @@ export default function Keyboard({ guesses, onKey, disabled }) {
             return (
               <button
                 key={key}
+                type="button"
                 onClick={() => !disabled && onKey(key)}
                 disabled={disabled}
                 style={{ flex: isWide ? 1.5 : 1 }}

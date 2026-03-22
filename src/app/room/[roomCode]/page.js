@@ -296,6 +296,8 @@ export default function RoomPage() {
   useEffect(() => {
     function onKeyDown(e) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Prevent Enter from scrolling/submitting forms and Backspace from navigating back
+      if (e.key === 'Enter' || e.key === 'Backspace') e.preventDefault();
       handleKey(e.key);
     }
     window.addEventListener('keydown', onKeyDown);
