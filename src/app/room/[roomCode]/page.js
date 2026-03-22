@@ -372,7 +372,6 @@ export default function RoomPage() {
               <div className="flex items-center gap-4">
                 <Timer
                   timeLimit={roundInfo.timeLimit}
-                  active={!finished}
                   onExpire={() => {}}
                 />
                 {finished && (

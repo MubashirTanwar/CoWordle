@@ -223,11 +223,13 @@ module.exports = function setupGameHandler(io) {
             timeLimit: state.timeLimit,
             elapsed,
           };
-          const pState = state.players[playerId];
-          if (pState) {
-            syncPayload.guesses = pState.guesses;
-            syncPayload.finished = pState.finished;
+          // Restore player to in-memory game state if they disconnected mid-game
+          if (!state.players[playerId]) {
+            state.players[playerId] = { guesses: [], finished: false, solved: false, timeTaken: null, points: 0 };
           }
+          const pState = state.players[playerId];
+          syncPayload.guesses = pState.guesses;
+          syncPayload.finished = pState.finished;
         }
 
         if (room.status === 'finished' && room.gameSessionId) {
@@ -283,7 +285,11 @@ module.exports = function setupGameHandler(io) {
       try {
         const room = await Room.findOne({ roomCode: roomCode.toUpperCase() });
         if (!room) { socket.emit('error', { message: 'Room not found' }); return; }
-        if (room.status !== 'lobby') { socket.emit('error', { message: 'Game already in progress' }); return; }
+        // Allow reconnect if the player was already in the room; block new players during a game
+        const wasInRoom = room.players.find((p) => p.playerId === playerId);
+        if (room.status !== 'lobby' && !wasInRoom) {
+          socket.emit('error', { message: 'Game already in progress' }); return;
+        }
 
         const existing = room.players.find((p) => p.playerId === playerId);
         if (existing) {
@@ -348,8 +354,11 @@ module.exports = function setupGameHandler(io) {
         const state = gameState[roomCode];
         if (!state) { socket.emit('error', { message: 'No active game' }); return; }
 
+        // Re-add player if they reconnected mid-game and aren't in state yet
+        if (!state.players[playerId]) {
+          state.players[playerId] = { guesses: [], finished: false, solved: false, timeTaken: null, points: 0 };
+        }
         const playerState = state.players[playerId];
-        if (!playerState) { socket.emit('error', { message: 'Not in this game' }); return; }
         if (playerState.finished) return;
 
         const guessUpper = guess.toUpperCase();
