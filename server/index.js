@@ -20,10 +20,9 @@ const io = new Server(server, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
-  pingTimeout: 60000,      // 60s before declaring a client disconnected
-  pingInterval: 25000,     // ping clients every 25s
-  upgradeTimeout: 30000,   // 30s to upgrade from polling to WebSocket
-  maxHttpBufferSize: 1e6,  // 1 MB max message size
+  pingTimeout: 20000,      // 20s before declaring a client disconnected (default)
+  pingInterval: 25000,     // ping clients every 25s (default)
+  upgradeTimeout: 10000,   // 10s to upgrade from polling to WebSocket (default)
 });
 
 app.use(cors({ origin: CLIENT_URL, credentials: true }));

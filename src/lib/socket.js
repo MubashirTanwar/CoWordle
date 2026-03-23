@@ -18,7 +18,6 @@ export function getSocket() {
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
       timeout: 20000,
-      withCredentials: true,
     });
 
     if (typeof window !== 'undefined') {
