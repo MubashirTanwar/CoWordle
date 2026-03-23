@@ -2,26 +2,31 @@
 import { useState, useCallback, useRef } from 'react';
 
 const EMOJIS = ['🔥', '😂', '👏', '🤯', '😭', '💀', '🎉', '👀', '😤', '🫡', '💪', '🥶'];
-const EMOJI_COOLDOWN_MS = 10000;
+const EMOJI_COOLDOWN_MS = 5000;
 
 // ─── Flying emoji overlay ─────────────────────────────────────────────────────
 export function FlyingEmojis({ emojis }) {
   return (
     <div className="fixed inset-0 pointer-events-none z-50 overflow-hidden">
       {emojis.map((e) => (
-        <FlyingEmoji key={e.id} emoji={e.emoji} x={e.x} />
+        <FlyingEmoji key={e.id} emoji={e.emoji} x={e.x} duration={e.duration} name={e.name} />
       ))}
     </div>
   );
 }
 
-function FlyingEmoji({ emoji, x }) {
+function FlyingEmoji({ emoji, x, duration, name }) {
   return (
     <div
-      className="absolute bottom-0 text-4xl select-none animate-fly"
-      style={{ left: `${x}%`, animationDuration: `${2.5 + Math.random() * 1.5}s` }}
+      className="absolute bottom-0 flex flex-col items-center gap-0.5 select-none animate-fly"
+      style={{ left: `${x}%`, animationDuration: `${duration}s` }}
     >
-      {emoji}
+      <span className="text-4xl">{emoji}</span>
+      {name && (
+        <span className="text-[11px] font-medium text-white bg-black/60 px-1.5 py-0.5 rounded-full whitespace-nowrap leading-tight">
+          {name}
+        </span>
+      )}
     </div>
   );
 }
@@ -61,10 +66,11 @@ export function EmojiBar({ onSend }) {
 export function useFlyingEmojis() {
   const [emojis, setEmojis] = useState([]);
 
-  const addEmoji = useCallback((emoji) => {
+  const addEmoji = useCallback((emoji, name = '') => {
     const id = Date.now() + Math.random();
     const x = 5 + Math.random() * 85; // 5–90% horizontal
-    setEmojis((prev) => [...prev, { id, emoji, x }]);
+    const duration = 2.5 + Math.random() * 1.5;
+    setEmojis((prev) => [...prev, { id, emoji, x, duration, name }]);
     setTimeout(() => {
       setEmojis((prev) => prev.filter((e) => e.id !== id));
     }, 4500);

@@ -18,6 +18,28 @@ function isValidGuess(word) {
   return /^[A-Za-z]{5}$/.test(word);
 }
 
+// ─── Connection status dot (top-right debug indicator) ────────────────────────
+function ConnectionDot({ status }) {
+  const styles = {
+    connected:    'bg-green-500',
+    reconnecting: 'bg-yellow-400 animate-pulse',
+    disconnected: 'bg-red-500',
+    connecting:   'bg-yellow-400 animate-pulse',
+  };
+  const labels = {
+    connected:    'Connected',
+    reconnecting: 'Reconnecting…',
+    disconnected: 'Disconnected',
+    connecting:   'Connecting…',
+  };
+  return (
+    <div
+      className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${styles[status] ?? 'bg-gray-500'}`}
+      title={labels[status] ?? status}
+    />
+  );
+}
+
 // ─── Name Prompt (shown when visiting a share link with no saved name) ─────────
 function NamePrompt({ roomCode, onJoin }) {
   const [name, setName] = useState('');
@@ -73,6 +95,7 @@ export default function RoomPage() {
   const [showNamePrompt, setShowNamePrompt] = useState(false);
 
   const [phase, setPhase] = useState('connecting');
+  const [connectionStatus, setConnectionStatus] = useState('connecting');
   const [room, setRoom] = useState(null);
   const [roundInfo, setRoundInfo] = useState({ roundNumber: 1, totalRounds: 3, timeLimit: 120, originalTimeLimit: 120 });
   const [roundEndData, setRoundEndData] = useState(null);
@@ -89,12 +112,14 @@ export default function RoomPage() {
   const socketRef = useRef(null);
   const finishedRef = useRef(false);
   const playerNameRef = useRef('');
+  const playerIdRef = useRef(null);
 
   // ─── Identity init ────────────────────────────────────────────────────────────
   useEffect(() => {
     let id = localStorage.getItem('cowordle_id');
     if (!id) { id = uuidv4(); localStorage.setItem('cowordle_id', id); }
     setPlayerId(id);
+    playerIdRef.current = id;
 
     const savedName = localStorage.getItem('cowordle_name');
     if (savedName) {
@@ -121,7 +146,24 @@ export default function RoomPage() {
     const socket = connectSocket();
     socketRef.current = socket;
 
-    // Named handlers so we can cleanly remove exactly these listeners
+    // ── Connection lifecycle handlers ──
+    const onConnect = () => {
+      setConnectionStatus('connected');
+      // Re-sync on every (re)connect to restore full game state
+      socket.emit('request-sync', { roomCode, playerId });
+    };
+
+    const onDisconnect = (reason) => {
+      // 'io client disconnect' = intentional (e.g. navigating away)
+      // anything else = unexpected drop → will auto-reconnect
+      setConnectionStatus(reason === 'io client disconnect' ? 'disconnected' : 'reconnecting');
+    };
+
+    const onConnectError = () => {
+      setConnectionStatus('reconnecting');
+    };
+
+    // ── Game event handlers ──
     const onRoomCreated = ({ room: r }) => {
       setRoom(r);
       setPhase('lobby');
@@ -177,9 +219,8 @@ export default function RoomPage() {
       setPlayerGuesses((prev) => ({ ...prev, [pid]: { result, tryNumber } }));
     };
 
-    const onEmojiReaction = ({ emoji }) => {
-      addEmoji(emoji);
-      // No toast — just the flying emoji
+    const onEmojiReaction = ({ emoji, playerName: pname }) => {
+      addEmoji(emoji, pname);
     };
 
     const onGameStarted = ({ roundNumber, totalRounds, timeLimit }) => {
@@ -251,6 +292,10 @@ export default function RoomPage() {
       addToast(`⚠️ ${message}`);
     };
 
+    // Register all handlers
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+    socket.on('connect_error', onConnectError);
     socket.on('room-created', onRoomCreated);
     socket.on('room-joined', onRoomJoined);
     socket.on('sync-state', onSyncState);
@@ -267,10 +312,15 @@ export default function RoomPage() {
     socket.on('invalid-word', onInvalidWord);
     socket.on('error', onError);
 
-    // ── Connect: always sync first; onSyncState will join-room if player not in room ──
-    socket.emit('request-sync', { roomCode, playerId });
+    // If already connected (e.g. HMR or re-mount), sync immediately
+    if (socket.connected) {
+      onConnect();
+    }
 
     return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+      socket.off('connect_error', onConnectError);
       socket.off('room-created', onRoomCreated);
       socket.off('room-joined', onRoomJoined);
       socket.off('sync-state', onSyncState);
@@ -379,7 +429,17 @@ export default function RoomPage() {
             {copied ? '✓ Link copied!' : `${roomCode} · Share`}
           </button>
         </div>
-        <div className="w-8" />
+        {/* Status dot + reload button */}
+        <div className="flex items-center gap-2">
+          <ConnectionDot status={connectionStatus} />
+          <button
+            onClick={() => window.location.reload()}
+            className="text-[#818384] hover:text-white text-lg w-8 h-8 flex items-center justify-center rounded hover:bg-[#3a3a3c] transition-colors"
+            title="Reload page"
+          >
+            ↻
+          </button>
+        </div>
       </header>
 
       <ToastContainer toasts={toasts} />
@@ -428,7 +488,7 @@ export default function RoomPage() {
               <div className="w-full border-t border-[#3a3a3c] pt-3 mt-1">
                 <EmojiBar onSend={(emoji) => {
                   socketRef.current?.emit('send-emoji', { roomCode, playerName, emoji });
-                  addEmoji(emoji);
+                  addEmoji(emoji, playerName);
                 }} />
               </div>
             </div>
