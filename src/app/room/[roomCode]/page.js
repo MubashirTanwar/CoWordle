@@ -97,6 +97,7 @@ export default function RoomPage() {
 
   const [phase, setPhase] = useState('connecting');
   const [connectionStatus, setConnectionStatus] = useState('connecting');
+  const [joinError, setJoinError] = useState(null);
   const [room, setRoom] = useState(null);
   const [roundInfo, setRoundInfo] = useState({ roundNumber: 1, totalRounds: 3, timeLimit: 120, originalTimeLimit: 120 });
   const [roundEndData, setRoundEndData] = useState(null);
@@ -296,7 +297,16 @@ export default function RoomPage() {
     };
 
     const onError = ({ message }) => {
-      addToast(`⚠️ ${message}`);
+      // If we haven't joined yet, show a blocking error screen instead of a toast
+      if (phase === 'connecting' || !socketRef.current?.connected) {
+        setJoinError(message);
+      } else {
+        addToast(`⚠️ ${message}`);
+      }
+    };
+
+    const onPlayAgainRedirect = ({ roomCode: newCode }) => {
+      router.push(`/room/${newCode}`);
     };
 
     // Register all handlers
@@ -319,6 +329,7 @@ export default function RoomPage() {
     socket.on('invalid-word', onInvalidWord);
     socket.on('error', onError);
     socket.on('message-received', onMessageReceived);
+    socket.on('play-again-redirect', onPlayAgainRedirect);
 
     // If already connected (e.g. HMR or re-mount), sync immediately
     if (socket.connected) {
@@ -345,6 +356,7 @@ export default function RoomPage() {
       socket.off('invalid-word', onInvalidWord);
       socket.off('error', onError);
       socket.off('message-received', onMessageReceived);
+      socket.off('play-again-redirect', onPlayAgainRedirect);
     };
   }, [playerId, showNamePrompt]);
 
@@ -408,6 +420,10 @@ export default function RoomPage() {
     socketRef.current?.emit('send-message', { roomCode, playerName, text });
   }
 
+  function handlePlayAgain() {
+    socketRef.current?.emit('play-again', { roomCode, playerId, settings: room?.settings });
+  }
+
   // ─── Share link ───────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
   function copyShareLink() {
@@ -420,6 +436,22 @@ export default function RoomPage() {
   // ─── Render ───────────────────────────────────────────────────────────────────
   if (showNamePrompt) {
     return <NamePrompt roomCode={roomCode} onJoin={handleNameSubmit} />;
+  }
+
+  if (joinError) {
+    return (
+      <div className="min-h-screen bg-[#121213] flex flex-col items-center justify-center px-4 gap-4">
+        <div className="text-5xl">🔒</div>
+        <p className="text-white font-bold text-lg uppercase tracking-widest">Game In Progress</p>
+        <p className="text-[#818384] text-sm text-center">{joinError}</p>
+        <button
+          onClick={() => router.push('/')}
+          className="mt-2 bg-[#538d4e] hover:bg-[#6aaf64] text-white font-bold py-3 px-8 rounded text-sm uppercase tracking-widest transition-colors"
+        >
+          Back to Home
+        </button>
+      </div>
+    );
   }
 
   if (phase === 'connecting') {
@@ -543,6 +575,7 @@ export default function RoomPage() {
               finalScores={gameEndData.finalScores}
               rounds={gameEndData.rounds}
               playerId={playerId}
+              onPlayAgain={handlePlayAgain}
             />
           </div>
         )}

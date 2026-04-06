@@ -1,7 +1,7 @@
 'use client';
 import { useRouter } from 'next/navigation';
 
-export default function GameEndView({ finalScores, rounds, playerId }) {
+export default function GameEndView({ finalScores, rounds, playerId, onPlayAgain }) {
   const router = useRouter();
   const myScore = finalScores?.find(s => s.playerId === playerId);
   const myRank = finalScores?.findIndex(s => s.playerId === playerId) + 1;
@@ -115,12 +115,20 @@ export default function GameEndView({ finalScores, rounds, playerId }) {
       </div>
 
       {/* Actions */}
-      <button
-        onClick={() => router.push('/')}
-        className="w-full bg-[#538d4e] hover:bg-[#6aaf64] text-white font-bold py-4 rounded text-sm uppercase tracking-widest transition-colors"
-      >
-        Play Again
-      </button>
+      <div className="w-full flex flex-col gap-2">
+        <button
+          onClick={onPlayAgain}
+          className="w-full bg-[#538d4e] hover:bg-[#6aaf64] text-white font-bold py-4 rounded text-sm uppercase tracking-widest transition-colors"
+        >
+          Play Again
+        </button>
+        <button
+          onClick={() => router.push('/')}
+          className="w-full bg-transparent border border-[#3a3a3c] hover:border-[#565758] text-[#818384] hover:text-white font-bold py-3 rounded text-sm uppercase tracking-widest transition-colors"
+        >
+          Home
+        </button>
+      </div>
     </div>
   );
 }

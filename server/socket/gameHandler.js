@@ -432,6 +432,42 @@ module.exports = function setupGameHandler(io) {
       }
     });
 
+    // ── Play Again ──
+    socket.on('play-again', async ({ roomCode, playerId, settings }) => {
+      try {
+        const oldRoom = await Room.findOne({ roomCode });
+        if (!oldRoom) { socket.emit('error', { message: 'Room not found' }); return; }
+
+        // Generate new room code
+        let newCode;
+        for (let i = 0; i < 10; i++) {
+          const code = generateRoomCode();
+          const exists = await Room.findOne({ roomCode: code });
+          if (!exists) { newCode = code; break; }
+        }
+        if (!newCode) { socket.emit('error', { message: 'Failed to generate room code' }); return; }
+
+        // New room: requesting player becomes host, keep same settings
+        const newSettings = settings || oldRoom.settings;
+        const requestingPlayer = oldRoom.players.find((p) => p.playerId === playerId);
+        const newRoom = new Room({
+          roomCode: newCode,
+          hostId: playerId,
+          players: [{ socketId: socket.id, playerId, playerName: requestingPlayer?.playerName || 'Player', isHost: true, isConnected: true }],
+          settings: { timeLimit: newSettings.timeLimit, rounds: newSettings.rounds },
+        });
+        await newRoom.save();
+
+        // Broadcast redirect to everyone in the old room then send the initiator room-created
+        socket.to(roomCode).emit('play-again-redirect', { roomCode: newCode });
+        socket.join(newCode);
+        socket.emit('play-again-redirect', { roomCode: newCode });
+      } catch (err) {
+        console.error('play-again error:', err);
+        socket.emit('error', { message: 'Failed to create new room' });
+      }
+    });
+
     // ── Chat Message ──
     socket.on('send-message', ({ roomCode, playerName, text }) => {
       if (!roomCode || !playerName || !text?.trim()) return;
