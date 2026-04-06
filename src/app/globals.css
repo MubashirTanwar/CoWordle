@@ -96,6 +96,22 @@ body {
   animation: flyUp linear forwards;
 }
 
+/* Chat bubbles */
+@keyframes chatBubbleIn {
+  from { transform: translateX(16px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+@keyframes chatBubbleOut {
+  from { opacity: 1;  transform: translateX(0); }
+  to   { opacity: 0;  transform: translateX(10px); }
+}
+.chat-bubble-enter {
+  animation: chatBubbleIn 0.2s ease forwards;
+}
+.chat-bubble-exit {
+  animation: chatBubbleOut 0.4s ease forwards;
+}
+
 /* Scrollbar */
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: #1a1a1b; }

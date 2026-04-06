@@ -14,6 +14,7 @@ import GameEndView from '@/components/GameEndView';
 import ToastContainer from '@/components/Toast';
 import { FlyingEmojis, EmojiBar, useFlyingEmojis } from '@/components/EmojiReactions';
 import Chat from '@/components/Chat';
+import ChatBubbles from '@/components/ChatBubbles';
 
 function isValidGuess(word) {
   return /^[A-Za-z]{5}$/.test(word);
@@ -522,7 +523,7 @@ export default function RoomPage() {
                 roundNumber={roundInfo.roundNumber}
                 totalRounds={roundInfo.totalRounds}
               />
-              <Chat messages={messages} onSend={sendMessage} />
+              <ChatBubbles messages={messages} onSend={sendMessage} />
             </div>
           </div>
         )}
