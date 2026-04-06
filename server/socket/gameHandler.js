@@ -55,6 +55,10 @@ function calculatePoints(triesUsed, timeTaken, timeLimit) {
 // }
 const gameState = {};
 
+// ─── In-memory chat messages ──────────────────────────────────────────────────
+// chatMessages[roomCode] = [{ playerName, text, timestamp }]  (capped at 100)
+const chatMessages = {};
+
 // ─── Round lifecycle ──────────────────────────────────────────────────────────
 
 async function startRound(io, roomCode, roundNumber) {
@@ -186,6 +190,7 @@ async function endGame(io, roomCode) {
   });
 
   delete gameState[roomCode];
+  delete chatMessages[roomCode];
 }
 
 // ─── Main socket handler ──────────────────────────────────────────────────────
@@ -254,6 +259,7 @@ module.exports = function setupGameHandler(io) {
           }
         }
 
+        syncPayload.messages = chatMessages[roomCode] || [];
         socket.emit('sync-state', syncPayload);
       } catch (err) {
         console.error('request-sync error:', err);
@@ -424,6 +430,16 @@ module.exports = function setupGameHandler(io) {
         console.error('submit-guess error:', err);
         socket.emit('error', { message: 'Failed to process guess' });
       }
+    });
+
+    // ── Chat Message ──
+    socket.on('send-message', ({ roomCode, playerName, text }) => {
+      if (!roomCode || !playerName || !text?.trim()) return;
+      const msg = { playerName, text: text.trim().slice(0, 200), timestamp: Date.now() };
+      if (!chatMessages[roomCode]) chatMessages[roomCode] = [];
+      chatMessages[roomCode].push(msg);
+      if (chatMessages[roomCode].length > 100) chatMessages[roomCode].shift();
+      io.to(roomCode).emit('message-received', msg);
     });
 
     // ── Emoji Reaction ──

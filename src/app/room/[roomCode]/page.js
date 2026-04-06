@@ -13,6 +13,7 @@ import RoundEndView from '@/components/RoundEndView';
 import GameEndView from '@/components/GameEndView';
 import ToastContainer from '@/components/Toast';
 import { FlyingEmojis, EmojiBar, useFlyingEmojis } from '@/components/EmojiReactions';
+import Chat from '@/components/Chat';
 
 function isValidGuess(word) {
   return /^[A-Za-z]{5}$/.test(word);
@@ -108,6 +109,7 @@ export default function RoomPage() {
   const [revealRow, setRevealRow] = useState(null);
   const [finishedPlayers, setFinishedPlayers] = useState({});
   const [playerGuesses, setPlayerGuesses] = useState({}); // { [playerId]: { result, tryNumber } }
+  const [messages, setMessages] = useState([]);
 
   const socketRef = useRef(null);
   const finishedRef = useRef(false);
@@ -174,7 +176,12 @@ export default function RoomPage() {
       setPhase('lobby');
     };
 
-    const onSyncState = ({ room: r, phase: serverPhase, roundInfo: ri, guesses: g, finished: fin, gameEndData: ged }) => {
+    const onMessageReceived = (msg) => {
+      setMessages((prev) => [...prev, msg]);
+    };
+
+    const onSyncState = ({ room: r, phase: serverPhase, roundInfo: ri, guesses: g, finished: fin, gameEndData: ged, messages: msgs }) => {
+      if (msgs) setMessages(msgs);
       // If we're not in the room's player list, join first (e.g. share link visitor)
       const amInRoom = r.players?.some((p) => p.playerId === playerId);
       if (!amInRoom) {
@@ -311,6 +318,7 @@ export default function RoomPage() {
     socket.on('game-ended', onGameEnded);
     socket.on('invalid-word', onInvalidWord);
     socket.on('error', onError);
+    socket.on('message-received', onMessageReceived);
 
     // If already connected (e.g. HMR or re-mount), sync immediately
     if (socket.connected) {
@@ -336,6 +344,7 @@ export default function RoomPage() {
       socket.off('game-ended', onGameEnded);
       socket.off('invalid-word', onInvalidWord);
       socket.off('error', onError);
+      socket.off('message-received', onMessageReceived);
     };
   }, [playerId, showNamePrompt]);
 
@@ -376,6 +385,8 @@ export default function RoomPage() {
   useEffect(() => {
     function onKeyDown(e) {
       if (e.ctrlKey || e.metaKey || e.altKey) return;
+      // Don't intercept typing in chat or other inputs
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
       // Prevent Enter from scrolling/submitting forms and Backspace from navigating back
       if (e.key === 'Enter' || e.key === 'Backspace') e.preventDefault();
       handleKey(e.key);
@@ -391,6 +402,10 @@ export default function RoomPage() {
 
   function handleSettingsChange(settings) {
     socketRef.current?.emit('update-settings', { roomCode, playerId, settings });
+  }
+
+  function sendMessage(text) {
+    socketRef.current?.emit('send-message', { roomCode, playerName, text });
   }
 
   // ─── Share link ───────────────────────────────────────────────────────────────
@@ -447,13 +462,18 @@ export default function RoomPage() {
 
       <main className="flex-1 flex flex-col items-center overflow-auto">
         {phase === 'lobby' && (
-          <div className="w-full pt-6">
-            <LobbyView
-              room={room}
-              playerId={playerId}
-              onStart={handleStart}
-              onSettingsChange={handleSettingsChange}
-            />
+          <div className="w-full pt-6 flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2">
+            <div className="w-full">
+              <LobbyView
+                room={room}
+                playerId={playerId}
+                onStart={handleStart}
+                onSettingsChange={handleSettingsChange}
+              />
+            </div>
+            <div className="w-full lg:w-72 flex-shrink-0">
+              <Chat messages={messages} onSend={sendMessage} />
+            </div>
           </div>
         )}
 
@@ -493,7 +513,7 @@ export default function RoomPage() {
               </div>
             </div>
 
-            <div className="lg:pt-16 w-full lg:w-auto">
+            <div className="lg:pt-16 w-full lg:w-64 flex flex-col gap-3">
               <PlayerPanel
                 players={room?.players || []}
                 finishedPlayers={finishedPlayers}
@@ -502,32 +522,43 @@ export default function RoomPage() {
                 roundNumber={roundInfo.roundNumber}
                 totalRounds={roundInfo.totalRounds}
               />
+              <Chat messages={messages} onSend={sendMessage} />
             </div>
           </div>
         )}
 
         {phase === 'round-end' && roundEndData && (
-          <>
-            <div className="flex flex-col items-center gap-4 pt-4 opacity-30 pointer-events-none">
-              <Board guesses={guesses} currentGuess="" shakeRow={null} revealRow={null} />
+          <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2 pt-4">
+            <div className="flex flex-col items-center gap-4 relative flex-1">
+              <div className="opacity-30 pointer-events-none">
+                <Board guesses={guesses} currentGuess="" shakeRow={null} revealRow={null} />
+              </div>
+              <RoundEndView
+                roundNumber={roundEndData.roundNumber}
+                word={roundEndData.word}
+                results={roundEndData.results}
+                isLastRound={roundEndData.isLastRound}
+                totalRounds={roundInfo.totalRounds}
+              />
             </div>
-            <RoundEndView
-              roundNumber={roundEndData.roundNumber}
-              word={roundEndData.word}
-              results={roundEndData.results}
-              isLastRound={roundEndData.isLastRound}
-              totalRounds={roundInfo.totalRounds}
-            />
-          </>
+            <div className="w-full lg:w-64 flex-shrink-0 lg:pt-4">
+              <Chat messages={messages} onSend={sendMessage} />
+            </div>
+          </div>
         )}
 
         {phase === 'game-end' && gameEndData && (
-          <div className="w-full pt-4">
-            <GameEndView
-              finalScores={gameEndData.finalScores}
-              rounds={gameEndData.rounds}
-              playerId={playerId}
-            />
+          <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2 pt-4">
+            <div className="flex-1">
+              <GameEndView
+                finalScores={gameEndData.finalScores}
+                rounds={gameEndData.rounds}
+                playerId={playerId}
+              />
+            </div>
+            <div className="w-full lg:w-64 flex-shrink-0">
+              <Chat messages={messages} onSend={sendMessage} />
+            </div>
           </div>
         )}
       </main>
