@@ -1,7 +1,7 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
 
-const EMOJIS = ['🔥', '😂', '👏', '🤯', '😭', '💀', '🎉', '👀', '😤', '🫡', '💪', '🥶'];
+const EMOJIS = ['🔥', '😂', '👏', '🤯', '😭', '💀', '🎉', '👀', '😤', '🫡', '💪', '🥶', '👎', '😿', '🛑', '🤡', '💩', '😪', '🫠', '🤦', '😬', '🙅'];
 const EMOJI_COOLDOWN_MS = 5000;
 
 // ─── Flying emoji overlay ─────────────────────────────────────────────────────
