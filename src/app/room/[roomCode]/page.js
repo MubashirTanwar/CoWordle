@@ -13,7 +13,6 @@ import RoundEndView from '@/components/RoundEndView';
 import GameEndView from '@/components/GameEndView';
 import ToastContainer from '@/components/Toast';
 import { FlyingEmojis, EmojiBar, useFlyingEmojis } from '@/components/EmojiReactions';
-import Chat from '@/components/Chat';
 import ChatBubbles from '@/components/ChatBubbles';
 
 function isValidGuess(word) {
@@ -460,21 +459,17 @@ export default function RoomPage() {
 
       <ToastContainer toasts={toasts} />
       <FlyingEmojis emojis={emojis} />
+      <ChatBubbles messages={messages} onSend={sendMessage} />
 
       <main className="flex-1 flex flex-col items-center overflow-auto">
         {phase === 'lobby' && (
-          <div className="w-full pt-6 flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2">
-            <div className="w-full">
-              <LobbyView
-                room={room}
-                playerId={playerId}
-                onStart={handleStart}
-                onSettingsChange={handleSettingsChange}
-              />
-            </div>
-            <div className="w-full lg:w-72 flex-shrink-0">
-              <Chat messages={messages} onSend={sendMessage} />
-            </div>
+          <div className="w-full pt-6">
+            <LobbyView
+              room={room}
+              playerId={playerId}
+              onStart={handleStart}
+              onSettingsChange={handleSettingsChange}
+            />
           </div>
         )}
 
@@ -514,7 +509,7 @@ export default function RoomPage() {
               </div>
             </div>
 
-            <div className="lg:pt-16 w-full lg:w-64 flex flex-col gap-3">
+            <div className="lg:pt-16 w-full lg:w-auto">
               <PlayerPanel
                 players={room?.players || []}
                 finishedPlayers={finishedPlayers}
@@ -523,43 +518,32 @@ export default function RoomPage() {
                 roundNumber={roundInfo.roundNumber}
                 totalRounds={roundInfo.totalRounds}
               />
-              <ChatBubbles messages={messages} onSend={sendMessage} />
             </div>
           </div>
         )}
 
         {phase === 'round-end' && roundEndData && (
-          <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2 pt-4">
-            <div className="flex flex-col items-center gap-4 relative flex-1">
-              <div className="opacity-30 pointer-events-none">
-                <Board guesses={guesses} currentGuess="" shakeRow={null} revealRow={null} />
-              </div>
-              <RoundEndView
-                roundNumber={roundEndData.roundNumber}
-                word={roundEndData.word}
-                results={roundEndData.results}
-                isLastRound={roundEndData.isLastRound}
-                totalRounds={roundInfo.totalRounds}
-              />
+          <>
+            <div className="flex flex-col items-center gap-4 pt-4 opacity-30 pointer-events-none">
+              <Board guesses={guesses} currentGuess="" shakeRow={null} revealRow={null} />
             </div>
-            <div className="w-full lg:w-64 flex-shrink-0 lg:pt-4">
-              <Chat messages={messages} onSend={sendMessage} />
-            </div>
-          </div>
+            <RoundEndView
+              roundNumber={roundEndData.roundNumber}
+              word={roundEndData.word}
+              results={roundEndData.results}
+              isLastRound={roundEndData.isLastRound}
+              totalRounds={roundInfo.totalRounds}
+            />
+          </>
         )}
 
         {phase === 'game-end' && gameEndData && (
-          <div className="w-full flex flex-col lg:flex-row items-start justify-center gap-4 max-w-4xl px-2 pt-4">
-            <div className="flex-1">
-              <GameEndView
-                finalScores={gameEndData.finalScores}
-                rounds={gameEndData.rounds}
-                playerId={playerId}
-              />
-            </div>
-            <div className="w-full lg:w-64 flex-shrink-0">
-              <Chat messages={messages} onSend={sendMessage} />
-            </div>
+          <div className="w-full pt-4">
+            <GameEndView
+              finalScores={gameEndData.finalScores}
+              rounds={gameEndData.rounds}
+              playerId={playerId}
+            />
           </div>
         )}
       </main>
