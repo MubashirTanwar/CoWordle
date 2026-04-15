@@ -16,6 +16,7 @@ const roomSchema = new mongoose.Schema(
     settings: {
       timeLimit: { type: Number, default: 120 },
       rounds: { type: Number, default: 3 },
+      hardMode: { type: Boolean, default: false },
     },
     status: {
       type: String,

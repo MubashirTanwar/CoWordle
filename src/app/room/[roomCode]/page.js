@@ -103,6 +103,9 @@ export default function RoomPage() {
   const [roundEndData, setRoundEndData] = useState(null);
   const [gameEndData, setGameEndData] = useState(null);
 
+  const [hardMode, setHardMode] = useState(false);
+  const hardModeRef = useRef(false);
+
   const [guesses, setGuesses] = useState([]);
   const [currentGuess, setCurrentGuess] = useState('');
   const [finished, setFinished] = useState(false);
@@ -191,11 +194,17 @@ export default function RoomPage() {
       }
 
       setRoom(r);
+      const roomHardMode = r.settings?.hardMode || false;
+      setHardMode(roomHardMode);
+      hardModeRef.current = roomHardMode;
       if (serverPhase === 'lobby') {
         setPhase('lobby');
       } else if (serverPhase === 'playing') {
         if (ri) {
           setRoundInfo({ roundNumber: ri.roundNumber, totalRounds: ri.totalRounds, timeLimit: ri.timeLimit - ri.elapsed, originalTimeLimit: ri.timeLimit });
+          const hm = ri.hardMode || r.settings?.hardMode || false;
+          setHardMode(hm);
+          hardModeRef.current = hm;
         }
         setGuesses(g || []);
         setFinished(fin || false);
@@ -221,6 +230,10 @@ export default function RoomPage() {
 
     const onSettingsUpdated = ({ settings }) => {
       setRoom((prev) => prev ? { ...prev, settings } : prev);
+      if (typeof settings.hardMode === 'boolean') {
+        setHardMode(settings.hardMode);
+        hardModeRef.current = settings.hardMode;
+      }
     };
 
     const onPlayerGuessed = ({ playerId: pid, result, tryNumber }) => {
@@ -231,7 +244,9 @@ export default function RoomPage() {
       addEmoji(emoji, pname);
     };
 
-    const onGameStarted = ({ roundNumber, totalRounds, timeLimit }) => {
+    const onGameStarted = ({ roundNumber, totalRounds, timeLimit, hardMode: hm }) => {
+      setHardMode(hm || false);
+      hardModeRef.current = hm || false;
       setRoundInfo({ roundNumber, totalRounds, timeLimit, originalTimeLimit: timeLimit });
       setGuesses([]);
       setCurrentGuess('');
@@ -360,6 +375,24 @@ export default function RoomPage() {
     };
   }, [playerId, showNamePrompt]);
 
+  // ─── Hard mode validation ─────────────────────────────────────────────────────
+  function checkHardMode(guess, prevGuesses) {
+    for (const { word, result } of prevGuesses) {
+      for (let i = 0; i < 5; i++) {
+        if (result[i] === 'correct' && guess[i] !== word[i]) {
+          const ord = ['1st', '2nd', '3rd', '4th', '5th'][i];
+          return `${ord} letter must be ${word[i]}`;
+        }
+      }
+      for (let i = 0; i < 5; i++) {
+        if (result[i] === 'present' && !guess.includes(word[i])) {
+          return `Guess must contain ${word[i]}`;
+        }
+      }
+    }
+    return null;
+  }
+
   // ─── Keyboard handler ─────────────────────────────────────────────────────────
   const handleKey = useCallback((key) => {
     if (finishedRef.current || phase !== 'playing') return;
@@ -382,6 +415,16 @@ export default function RoomPage() {
         addToast('Letters only');
         return;
       }
+      if (hardModeRef.current) {
+        const completedGuesses = guesses.filter((g) => !g.pending && g.result);
+        const err = checkHardMode(currentGuess, completedGuesses);
+        if (err) {
+          setShakeRow(guesses.length);
+          setTimeout(() => setShakeRow(null), 600);
+          addToast(err);
+          return;
+        }
+      }
       const word = currentGuess;
       socketRef.current?.emit('submit-guess', { roomCode, playerId, guess: word });
       setGuesses((g) => [...g, { word, result: null, pending: true }]);
@@ -392,7 +435,7 @@ export default function RoomPage() {
     if (/^[a-zA-Z]$/.test(key) && currentGuess.length < 5) {
       setCurrentGuess((prev) => (prev.length < 5 ? prev + key.toUpperCase() : prev));
     }
-  }, [phase, guesses.length, currentGuess, roomCode, playerId]);
+  }, [phase, guesses, currentGuess, roomCode, playerId]);
 
   useEffect(() => {
     function onKeyDown(e) {
@@ -467,8 +510,18 @@ export default function RoomPage() {
       {/* Header */}
       <header className="border-b border-[#3a3a3c] flex items-center justify-between px-4 py-3 flex-shrink-0">
         <button onClick={() => router.push('/')} className="text-[#818384] hover:text-white text-xl w-8">←</button>
-        <div className="text-center">
-          <h1 className="text-lg font-bold uppercase tracking-widest">CoWordle</h1>
+        <div className="text-center relative">
+          <div className="flex items-center justify-center gap-2">
+            <h1 className="text-lg font-bold uppercase tracking-widest">CoWordle</h1>
+            {hardMode && (
+              <span
+                className="text-[10px] font-bold text-[#b59f3b] border border-[#b59f3b] rounded px-1 leading-tight"
+                title="Hard Mode: revealed hints must be used in future guesses"
+              >
+                ?
+              </span>
+            )}
+          </div>
           <button
             onClick={copyShareLink}
             className="text-[10px] text-[#818384] hover:text-white uppercase tracking-widest transition-colors"

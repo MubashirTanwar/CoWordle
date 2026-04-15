@@ -4,7 +4,7 @@ import { useState } from 'react';
 export default function LobbyView({ room, playerId, onStart, onSettingsChange }) {
   const isHost = room?.hostId === playerId;
   const [copied, setCopied] = useState(false);
-  const [settings, setSettings] = useState(room?.settings || { timeLimit: 120, rounds: 3 });
+  const [settings, setSettings] = useState(room?.settings || { timeLimit: 120, rounds: 3, hardMode: false });
 
   function copyCode() {
     navigator.clipboard.writeText(room.roomCode);
@@ -78,7 +78,7 @@ export default function LobbyView({ room, playerId, onStart, onSettingsChange })
             </div>
           </div>
 
-          <div>
+          <div className="mb-4">
             <label className="block text-xs text-[#818384] mb-2">
               Rounds: <span className="text-white font-bold">{settings.rounds}</span>
             </label>
@@ -98,6 +98,25 @@ export default function LobbyView({ room, playerId, onStart, onSettingsChange })
               ))}
             </div>
           </div>
+
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-white font-bold">Hard Mode</p>
+              <p className="text-[10px] text-[#818384] mt-0.5">Revealed hints must be used in future guesses</p>
+            </div>
+            <button
+              onClick={() => updateSettings({ ...settings, hardMode: !settings.hardMode })}
+              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
+                settings.hardMode ? 'bg-[#538d4e]' : 'bg-[#3a3a3c]'
+              }`}
+            >
+              <span
+                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                  settings.hardMode ? 'translate-x-7' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
       )}
 
@@ -105,7 +124,7 @@ export default function LobbyView({ room, playerId, onStart, onSettingsChange })
         <div className="w-full border border-[#3a3a3c] rounded-lg p-4 mb-6 text-center">
           <p className="text-xs text-[#818384] uppercase tracking-widest mb-1">Game Settings</p>
           <p className="text-white text-sm">
-            {settings.timeLimit}s per round • {settings.rounds} rounds
+            {settings.timeLimit}s per round • {settings.rounds} rounds{settings.hardMode ? ' • Hard Mode' : ''}
           </p>
           <p className="text-[#818384] text-xs mt-2">Waiting for host to start...</p>
         </div>

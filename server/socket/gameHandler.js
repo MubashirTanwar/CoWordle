@@ -92,6 +92,7 @@ async function startRound(io, roomCode, roundNumber) {
     roundNumber,
     totalRounds: room.settings.rounds,
     timeLimit,
+    hardMode: room.settings.hardMode || false,
   });
 
   // Start timer
@@ -233,6 +234,7 @@ module.exports = function setupGameHandler(io) {
             totalRounds: room.settings.rounds,
             timeLimit: state.timeLimit,
             elapsed,
+            hardMode: room.settings.hardMode || false,
           };
           // Restore player (re-connect): clear disconnected flag, preserve existing guesses
           if (!state.players[playerId]) {
@@ -282,7 +284,7 @@ module.exports = function setupGameHandler(io) {
           roomCode,
           hostId: playerId,
           players: [{ socketId: socket.id, playerId, playerName, isHost: true, isConnected: true }],
-          settings: { timeLimit: settings?.timeLimit || 120, rounds: settings?.rounds || 3 },
+          settings: { timeLimit: settings?.timeLimit || 120, rounds: settings?.rounds || 3, hardMode: settings?.hardMode || false },
         });
         await room.save();
 
@@ -454,7 +456,7 @@ module.exports = function setupGameHandler(io) {
           roomCode: newCode,
           hostId: playerId,
           players: [{ socketId: socket.id, playerId, playerName: requestingPlayer?.playerName || 'Player', isHost: true, isConnected: true }],
-          settings: { timeLimit: newSettings.timeLimit, rounds: newSettings.rounds },
+          settings: { timeLimit: newSettings.timeLimit, rounds: newSettings.rounds, hardMode: newSettings.hardMode || false },
         });
         await newRoom.save();
 
