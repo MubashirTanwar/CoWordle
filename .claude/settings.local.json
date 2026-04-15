@@ -11,7 +11,9 @@
       "Bash(cmd /c \"taskkill /PID 21996 /F\")",
       "Bash(cmd /c taskkill /PID 21996 /F)",
       "Bash(kill 21996)",
-      "Bash(npx kill-port:*)"
+      "Bash(npx kill-port:*)",
+      "Bash(npm ls:*)",
+      "Bash(npm run:*)"
     ]
   }
 }

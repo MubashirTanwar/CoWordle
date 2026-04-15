@@ -14,6 +14,7 @@ import GameEndView from '@/components/GameEndView';
 import ToastContainer from '@/components/Toast';
 import { FlyingEmojis, EmojiBar, useFlyingEmojis } from '@/components/EmojiReactions';
 import ChatBubbles from '@/components/ChatBubbles';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 
 function isValidGuess(word) {
   return /^[A-Za-z]{5}$/.test(word);
@@ -510,16 +511,30 @@ export default function RoomPage() {
       {/* Header */}
       <header className="border-b border-[#3a3a3c] flex items-center justify-between px-4 py-3 flex-shrink-0">
         <button onClick={() => router.push('/')} className="text-[#818384] hover:text-white text-xl w-8">←</button>
-        <div className="text-center relative">
+        <div className="text-center">
           <div className="flex items-center justify-center gap-2">
             <h1 className="text-lg font-bold uppercase tracking-widest">CoWordle</h1>
             {hardMode && (
-              <span
-                className="text-[10px] font-bold text-[#b59f3b] border border-[#b59f3b] rounded px-1 leading-tight"
-                title="Hard Mode: revealed hints must be used in future guesses"
-              >
-                ?
-              </span>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button className="text-[10px] font-bold text-[#b59f3b] border border-[#b59f3b] rounded px-1.5 py-0.5 leading-tight hover:bg-[#b59f3b]/10 transition-colors">
+                    ?
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent side="bottom" align="center">
+                  <p className="text-xs font-bold uppercase tracking-widest text-[#b59f3b] mb-2">Hard Mode</p>
+                  <ul className="text-xs text-[#818384] space-y-1.5">
+                    <li className="flex gap-2">
+                      <span className="text-[#538d4e] font-bold">■</span>
+                      Green letters must stay in the same position
+                    </li>
+                    <li className="flex gap-2">
+                      <span className="text-[#b59f3b] font-bold">■</span>
+                      Yellow letters must be used somewhere in the guess
+                    </li>
+                  </ul>
+                </PopoverContent>
+              </Popover>
             )}
           </div>
           <button

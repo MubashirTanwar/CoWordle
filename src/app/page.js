@@ -3,13 +3,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { connectSocket } from '@/lib/socket';
 import { v4 as uuidv4 } from 'uuid';
+import { Switch } from '@/components/ui/switch';
 
 export default function Home() {
   const router = useRouter();
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [mode, setMode] = useState(null); // 'create' | 'join'
-  const [settings, setSettings] = useState({ timeLimit: 120, rounds: 3 });
+  const [settings, setSettings] = useState({ timeLimit: 120, rounds: 3, hardMode: false });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -155,7 +156,7 @@ export default function Home() {
                 </div>
               </div>
 
-              <div>
+              <div className="mb-1">
                 <label className="block text-xs text-[#818384] mb-2">
                   Rounds: <span className="text-white font-bold">{settings.rounds}</span>
                 </label>
@@ -174,6 +175,17 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-[#3a3a3c]">
+                <div>
+                  <p className="text-xs text-white font-bold">Hard Mode</p>
+                  <p className="text-[10px] text-[#818384] mt-0.5">Revealed hints must be used in future guesses</p>
+                </div>
+                <Switch
+                  checked={settings.hardMode}
+                  onCheckedChange={(checked) => setSettings(s => ({ ...s, hardMode: checked }))}
+                />
               </div>
             </div>
 

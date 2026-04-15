@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { Switch } from '@/components/ui/switch';
 
 export default function LobbyView({ room, playerId, onStart, onSettingsChange }) {
   const isHost = room?.hostId === playerId;
@@ -78,7 +79,7 @@ export default function LobbyView({ room, playerId, onStart, onSettingsChange })
             </div>
           </div>
 
-          <div className="mb-4">
+          <div className="mb-5">
             <label className="block text-xs text-[#818384] mb-2">
               Rounds: <span className="text-white font-bold">{settings.rounds}</span>
             </label>
@@ -104,18 +105,10 @@ export default function LobbyView({ room, playerId, onStart, onSettingsChange })
               <p className="text-xs text-white font-bold">Hard Mode</p>
               <p className="text-[10px] text-[#818384] mt-0.5">Revealed hints must be used in future guesses</p>
             </div>
-            <button
-              onClick={() => updateSettings({ ...settings, hardMode: !settings.hardMode })}
-              className={`relative w-12 h-6 rounded-full transition-colors flex-shrink-0 ${
-                settings.hardMode ? 'bg-[#538d4e]' : 'bg-[#3a3a3c]'
-              }`}
-            >
-              <span
-                className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                  settings.hardMode ? 'translate-x-7' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <Switch
+              checked={settings.hardMode || false}
+              onCheckedChange={(checked) => updateSettings({ ...settings, hardMode: checked })}
+            />
           </div>
         </div>
       )}
