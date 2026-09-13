@@ -16,3 +16,7 @@ server/.env
 *.log
 npm-debug.log*
 .vercel
+
+# TypeScript
+*.tsbuildinfo
+server/dist/
