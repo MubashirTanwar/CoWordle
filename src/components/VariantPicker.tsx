@@ -3,7 +3,7 @@ import type { Variant } from '@shared/types';
 
 export const VARIANT_INFO: Record<Variant, { label: string; blurb: string }> = {
   classic: { label: 'Classic', blurb: '6 tries · tiles show which letters are right' },
-  word500: { label: 'Word500', blurb: '8 tries · only counts of 🟩🟨🟥 — not which letters' },
+  word500: { label: 'Word500', blurb: '8 tries · only counts of 🟩🟨🟥, not which letters' },
 };
 
 interface VariantPickerProps {

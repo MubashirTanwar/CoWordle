@@ -48,8 +48,8 @@ export default function Board({ guesses, currentGuess, shakeRow, revealRow, vari
   }
 
   return (
-    // Board fills available width up to 350px; tiles scale via flex
-    <div className={`flex flex-col gap-[5px] w-full mx-auto px-2 ${isWord500 ? 'max-w-[400px]' : 'max-w-[350px]'}`}>
+    // Board fills available width up to 350px (Word500: wider for the count boxes); tiles scale via flex
+    <div className={`flex flex-col gap-[5px] w-full mx-auto px-2 ${isWord500 ? 'max-w-[480px]' : 'max-w-[350px]'}`}>
       {rows}
     </div>
   );
@@ -77,6 +77,7 @@ function Row({ letters, results, marks, counts, isRevealing, isShaking, submitte
             key={i}
             letter={letter}
             result={results?.[i] ?? marks?.[letter] ?? null}
+            palette={marks ? WORD500_COLORS : undefined}
             isRevealing={isRevealing && !!results}
             delay={results ? i * 300 : 0}
             submitted={submitted}
@@ -89,24 +90,33 @@ function Row({ letters, results, marks, counts, isRevealing, isShaking, submitte
   );
 }
 
+/** Word500 colours: "not in word" is red rather than gray. */
+export const WORD500_COLORS: Record<LetterState, string> = {
+  correct: '#538d4e',
+  present: '#b59f3b',
+  absent: '#c0392b',
+};
+
+const COUNT_ORDER: (keyof Word500Counts)[] = ['correct', 'present', 'absent'];
+
+// Three square count boxes beside the row (🟩 🟨 🟥), same size as the tiles
 function Counts({ counts }: { counts: Word500Counts | null }) {
-  const cells: [keyof Word500Counts, string][] = [
-    ['correct', '#538d4e'],
-    ['present', '#b59f3b'],
-    ['absent', '#a33a3a'],
-  ];
   return (
-    <div className="flex flex-col gap-[2px] w-9 flex-shrink-0 ml-1">
-      {cells.map(([key, color]) => (
+    <>
+      <div className="w-1.5 flex-shrink-0" />
+      {COUNT_ORDER.map((key) => (
         <div
           key={key}
-          className="h-[15px] sm:h-[17px] rounded-sm flex items-center justify-center text-[11px] font-bold text-white"
-          style={{ backgroundColor: counts ? color : '#1a1a1b', opacity: counts && counts[key] === 0 ? 0.35 : 1 }}
+          className="flex-1 aspect-square flex items-center justify-center text-xl sm:text-2xl font-bold text-white select-none"
+          style={{
+            backgroundColor: counts ? WORD500_COLORS[key] : 'transparent',
+            border: counts ? '2px solid transparent' : '2px solid #3a3a3c',
+          }}
         >
           {counts ? counts[key] : ''}
         </div>
       ))}
-    </div>
+    </>
   );
 }
 
@@ -116,10 +126,12 @@ interface TileProps {
   isRevealing: boolean;
   delay: number;
   submitted: boolean;
+  /** Overrides the classic tile colours (Word500 marks). */
+  palette?: Record<LetterState, string>;
   onClick?: () => void;
 }
 
-function Tile({ letter, result, isRevealing, delay, submitted, onClick }: TileProps) {
+function Tile({ letter, result, isRevealing, delay, submitted, palette, onClick }: TileProps) {
   const tileRef = useRef<HTMLDivElement>(null);
   const prevLetter = useRef('');
 
@@ -148,7 +160,7 @@ function Tile({ letter, result, isRevealing, delay, submitted, onClick }: TilePr
     }
   }, [isRevealing, result, delay]);
 
-  const bgColor = result ? getTileColor(result) : 'transparent';
+  const bgColor = result ? (palette ? palette[result] : getTileColor(result)) : 'transparent';
   const borderStyle = result
     ? 'border-transparent'
     : letter

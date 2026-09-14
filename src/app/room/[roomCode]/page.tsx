@@ -555,7 +555,7 @@ export default function RoomPage() {
                     <li>Each guess only tells you <span className="text-white">how many</span> letters are:</li>
                     <li className="flex gap-2"><span className="text-[#538d4e] font-bold">■</span>right letter, right spot</li>
                     <li className="flex gap-2"><span className="text-[#b59f3b] font-bold">■</span>right letter, wrong spot</li>
-                    <li className="flex gap-2"><span className="text-[#a33a3a] font-bold">■</span>not in the word</li>
+                    <li className="flex gap-2"><span className="text-[#c0392b] font-bold">■</span>not in the word</li>
                     <li>Tap letters on the board to keep your own notes. You get {MAX_GUESSES.word500} tries.</li>
                   </ul>
                 </PopoverContent>
@@ -645,13 +645,14 @@ export default function RoomPage() {
               />
 
               {variant === 'word500' && !finished && (
-                <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it ⬛ → 🟨 → 🟩</p>
+                <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it 🟥 → 🟨 → 🟩</p>
               )}
 
               <Keyboard
                 keyStates={keyStates}
                 onKey={handleKey}
                 disabled={finished}
+                variant={variant}
               />
 
               {/* Emoji bar */}

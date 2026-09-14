@@ -258,7 +258,7 @@ export default function SoloPage() {
             />
 
             {game.variant === 'word500' && !outcome && (
-              <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it ⬛ → 🟨 → 🟩</p>
+              <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it 🟥 → 🟨 → 🟩</p>
             )}
 
             {outcome && (
@@ -277,7 +277,7 @@ export default function SoloPage() {
               </div>
             )}
 
-            <Keyboard keyStates={keyStates} onKey={handleKey} disabled={!!outcome} />
+            <Keyboard keyStates={keyStates} onKey={handleKey} disabled={!!outcome} variant={game.variant} />
           </>
         )}
       </main>

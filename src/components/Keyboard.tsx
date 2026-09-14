@@ -1,5 +1,5 @@
 'use client';
-import type { LetterState } from '@shared/types';
+import type { LetterState, Variant } from '@shared/types';
 
 const ROWS = [
   ['Q','W','E','R','T','Y','U','I','O','P'],
@@ -12,14 +12,16 @@ interface KeyboardProps {
   keyStates: Record<string, LetterState>;
   onKey: (key: string) => void;
   disabled?: boolean;
+  variant?: Variant;
 }
 
-export default function Keyboard({ keyStates, onKey, disabled }: KeyboardProps) {
+export default function Keyboard({ keyStates, onKey, disabled, variant = 'classic' }: KeyboardProps) {
   function getKeyStyle(key: string) {
     switch (keyStates[key]) {
       case 'correct': return 'bg-[#538d4e] text-white';
       case 'present': return 'bg-[#b59f3b] text-white';
-      case 'absent':  return 'bg-[#3a3a3c] text-white';
+      // Word500 marks "not in word" in red, matching the board
+      case 'absent':  return variant === 'word500' ? 'bg-[#c0392b] text-white' : 'bg-[#3a3a3c] text-white';
       default:        return 'bg-[#818384] text-white hover:bg-[#9a9b9c]';
     }
   }

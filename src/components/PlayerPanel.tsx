@@ -79,7 +79,7 @@ export default function PlayerPanel({ players, finishedPlayers, playerGuesses, c
                 <div className="flex gap-1 mt-1.5 ml-7 text-[10px] font-bold">
                   <span className="px-1.5 rounded-sm bg-[#538d4e]">{guessInfo.counts.correct}</span>
                   <span className="px-1.5 rounded-sm bg-[#b59f3b]">{guessInfo.counts.present}</span>
-                  <span className="px-1.5 rounded-sm bg-[#a33a3a]">{guessInfo.counts.absent}</span>
+                  <span className="px-1.5 rounded-sm bg-[#c0392b]">{guessInfo.counts.absent}</span>
                 </div>
               )}
             </div>
