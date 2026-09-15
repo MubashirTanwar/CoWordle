@@ -3,7 +3,7 @@ import { useEffect, useRef } from 'react';
 import { getTileColor } from '@shared/wordle';
 import { MAX_GUESSES, WORD_LENGTH } from '@shared/types';
 import type { LetterState, Variant, Word500Counts } from '@shared/types';
-import type { BoardGuess, LetterMarks } from '@/lib/types';
+import { tileKey, type BoardGuess, type TileMarks } from '@/lib/types';
 
 interface BoardProps {
   guesses: BoardGuess[];
@@ -11,10 +11,10 @@ interface BoardProps {
   shakeRow: number | null;
   revealRow: number | null;
   variant?: Variant;
-  /** Word500 only: player-set letter colours. */
-  marks?: LetterMarks;
-  /** Word500 only: tap a submitted tile to cycle its letter's mark. */
-  onTileClick?: (letter: string) => void;
+  /** Word500 only: player-set tile colours. */
+  marks?: TileMarks;
+  /** Word500 only: tap a submitted tile to cycle its mark. */
+  onTileClick?: (key: string) => void;
 }
 
 export default function Board({ guesses, currentGuess, shakeRow, revealRow, variant = 'classic', marks, onTileClick }: BoardProps) {
@@ -29,6 +29,7 @@ export default function Board({ guesses, currentGuess, shakeRow, revealRow, vari
     rows.push(
       <Row
         key={r}
+        row={r}
         letters={
           submittedGuess
             ? submittedGuess.word.split('')
@@ -56,18 +57,19 @@ export default function Board({ guesses, currentGuess, shakeRow, revealRow, vari
 }
 
 interface RowProps {
+  row: number;
   letters: string[];
   results?: LetterState[];
-  marks?: LetterMarks;
+  marks?: TileMarks;
   /** undefined = classic (no column), null = word500 row without feedback yet */
   counts?: Word500Counts | null;
   isRevealing: boolean;
   isShaking: boolean;
   submitted: boolean;
-  onTileClick?: (letter: string) => void;
+  onTileClick?: (key: string) => void;
 }
 
-function Row({ letters, results, marks, counts, isRevealing, isShaking, submitted, onTileClick }: RowProps) {
+function Row({ row, letters, results, marks, counts, isRevealing, isShaking, submitted, onTileClick }: RowProps) {
   return (
     <div className={`flex gap-[5px] w-full items-center ${isShaking ? 'row-shake' : ''}`}>
       {Array.from({ length: WORD_LENGTH }).map((_, i) => {
@@ -76,12 +78,12 @@ function Row({ letters, results, marks, counts, isRevealing, isShaking, submitte
           <Tile
             key={i}
             letter={letter}
-            result={results?.[i] ?? marks?.[letter] ?? null}
+            result={results?.[i] ?? marks?.[tileKey(row, i)] ?? null}
             palette={marks ? WORD500_COLORS : undefined}
             isRevealing={isRevealing && !!results}
             delay={results ? i * 300 : 0}
             submitted={submitted}
-            onClick={onTileClick && letter ? () => onTileClick(letter) : undefined}
+            onClick={onTileClick && letter ? () => onTileClick(tileKey(row, i)) : undefined}
           />
         );
       })}

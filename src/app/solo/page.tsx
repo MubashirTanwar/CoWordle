@@ -8,7 +8,7 @@ import VariantPicker, { VARIANT_INFO } from '@/components/VariantPicker';
 import { Switch } from '@/components/ui/switch';
 import { ApiError } from '@/lib/api';
 import { useNewSoloGame, useSoloGuess } from '@/lib/queries';
-import { cycleMark, type BoardGuess, type LetterMarks } from '@/lib/types';
+import { cycleMark, marksToKeyStates, type BoardGuess, type TileMarks } from '@/lib/types';
 import { checkHardMode, getKeyStates } from '@shared/wordle';
 import type { Variant } from '@shared/types';
 import type { SoloGame } from '@shared/api';
@@ -66,7 +66,7 @@ export default function SoloPage() {
   const [currentGuess, setCurrentGuess] = useState('');
   const [shakeRow, setShakeRow] = useState<number | null>(null);
   const [revealRow, setRevealRow] = useState<number | null>(null);
-  const [marks, setMarks] = useState<LetterMarks>({});
+  const [marks, setMarks] = useState<TileMarks>({});
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [stats, setStats] = useState<DrillStats>(EMPTY_STATS);
 
@@ -191,10 +191,10 @@ export default function SoloPage() {
   }, [handleKey, outcome, startGame, activeVariant, hardMode]);
 
   const keyStates = useMemo(
-    () => (activeVariant === 'word500' ? marks : getKeyStates(guesses)),
+    () => (activeVariant === 'word500' ? marksToKeyStates(guesses, marks) : getKeyStates(guesses)),
     [activeVariant, marks, guesses],
   );
-  const toggleMark = useCallback((letter: string) => setMarks((m) => cycleMark(m, letter)), []);
+  const toggleMark = useCallback((key: string) => setMarks((m) => cycleMark(m, key)), []);
 
   const avgTries = stats.solved ? (stats.totalTries / stats.solved).toFixed(1) : '–';
   const winPct = stats.played ? Math.round((stats.solved / stats.played) * 100) : 0;
@@ -258,7 +258,7 @@ export default function SoloPage() {
             />
 
             {game.variant === 'word500' && !outcome && (
-              <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it 🟥 → 🟨 → 🟩</p>
+              <p className="text-[10px] text-[#818384] -mt-1">Tap a tile to mark it 🟥 → 🟨 → 🟩</p>
             )}
 
             {outcome && (

@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { connectSocket, type ClientSocket } from '@/lib/socket';
 import { getPlayerId, getSavedName, saveName } from '@/lib/player';
-import { cycleMark, type BoardGuess, type LetterMarks } from '@/lib/types';
+import { cycleMark, marksToKeyStates, type BoardGuess, type TileMarks } from '@/lib/types';
 import { useToasts } from '@/components/Toast';
 import Board from '@/components/Board';
 import Keyboard from '@/components/Keyboard';
@@ -145,7 +145,7 @@ export default function RoomPage() {
   const [finished, setFinished] = useState(false);
   const [shakeRow, setShakeRow] = useState<number | null>(null);
   const [revealRow, setRevealRow] = useState<number | null>(null);
-  const [marks, setMarks] = useState<LetterMarks>({});
+  const [marks, setMarks] = useState<TileMarks>({});
   const [finishedPlayers, setFinishedPlayers] = useState<Record<string, FinishedInfo>>({});
   const [playerGuesses, setPlayerGuesses] = useState<Record<string, GuessInfo>>({});
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -493,8 +493,8 @@ export default function RoomPage() {
   }
 
   // Word500: player colours letters themselves by tapping tiles
-  const keyStates = useMemo(() => (variant === 'word500' ? marks : getKeyStates(guesses)), [variant, marks, guesses]);
-  const toggleMark = useCallback((letter: string) => setMarks((m) => cycleMark(m, letter)), []);
+  const keyStates = useMemo(() => (variant === 'word500' ? marksToKeyStates(guesses, marks) : getKeyStates(guesses)), [variant, marks, guesses]);
+  const toggleMark = useCallback((key: string) => setMarks((m) => cycleMark(m, key)), []);
 
   // ─── Share link ───────────────────────────────────────────────────────────────
   const [copied, setCopied] = useState(false);
@@ -622,7 +622,7 @@ export default function RoomPage() {
 
         {phase === 'playing' && (
           <div className="flex flex-col lg:flex-row items-start justify-center gap-4 w-full max-w-4xl px-2 pt-4">
-            <div className="flex flex-col items-center gap-3 w-full lg:max-w-sm">
+            <div className={`flex flex-col items-center gap-3 w-full ${variant === 'word500' ? 'lg:max-w-md' : 'lg:max-w-sm'}`}>
               <div className="flex items-center gap-4">
                 <Timer
                   timeLimit={roundInfo.timeLimit}
@@ -645,7 +645,7 @@ export default function RoomPage() {
               />
 
               {variant === 'word500' && !finished && (
-                <p className="text-[10px] text-[#818384] -mt-1">Tap a letter on the board to mark it 🟥 → 🟨 → 🟩</p>
+                <p className="text-[10px] text-[#818384] -mt-1">Tap a tile to mark it 🟥 → 🟨 → 🟩</p>
               )}
 
               <Keyboard
