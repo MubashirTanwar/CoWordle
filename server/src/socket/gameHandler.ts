@@ -457,7 +457,8 @@ export default function setupGameHandler(io: TypedServer): void {
         if (room.hostId !== playerId) { socket.emit(Events.ERROR, { message: 'Only host can start' }); return; }
         if (room.status !== 'lobby') { socket.emit(Events.ERROR, { message: 'Game already started' }); return; }
 
-        const session = new GameSession({ roomCode, rounds: [], finalScores: [] });
+        const { variant, hardMode } = settingsOf(room);
+        const session = new GameSession({ roomCode, variant, hardMode, rounds: [], finalScores: [] });
         await session.save();
 
         room.gameSessionId = session._id;

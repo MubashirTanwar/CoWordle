@@ -5,7 +5,11 @@ const SERVER_URL = (process.env.NEXT_PUBLIC_SERVER_URL || 'http://localhost:3001
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   async rewrites() {
-    return [{ source: '/api/:path*', destination: `${SERVER_URL}/api/:path*` }];
+    // `fallback` so Next's own API routes (/api/auth/*, /api/admin/*) win;
+    // everything else under /api goes to Express.
+    return {
+      fallback: [{ source: '/api/:path*', destination: `${SERVER_URL}/api/:path*` }],
+    };
   },
 };
 

@@ -37,6 +37,9 @@ export interface HealthStatus {
 export interface SoloNewGameBody {
   variant: Variant;
   hardMode: boolean;
+  /** Optional, so finished drills show up under the player in the admin panel. */
+  playerId?: string;
+  playerName?: string;
 }
 
 export interface SoloGame {

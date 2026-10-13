@@ -9,6 +9,7 @@ import setupGameHandler from './socket/gameHandler';
 import type { TypedServer } from './socket/types';
 import { health } from './routes/health';
 import soloRouter from './routes/solo';
+import adminRouter from './routes/admin';
 import { fail } from './lib/response';
 
 const app = express();
@@ -37,6 +38,7 @@ app.get('/health', health);
 app.get('/api/health', health);
 
 app.use('/api/solo', soloRouter);
+app.use('/api/admin', adminRouter);
 
 app.use('/api', (_req, res) => fail(res, 404, 'NOT_FOUND', 'Route not found'));
 

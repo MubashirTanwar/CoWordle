@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { randomUUID } from 'crypto';
 import { z } from 'zod';
+import mongoose from 'mongoose';
 import { fail, ok } from '../lib/response';
+import SoloResult from '../models/SoloResult';
 import { getRandomWord, VALID_WORDS_SET } from '../lib/words';
 import { buildGuess, checkHardMode } from '../shared/wordle';
 import { MAX_GUESSES, VARIANTS } from '../shared/types';
@@ -18,6 +20,9 @@ interface SoloState {
   hardMode: boolean;
   guesses: Guess[];
   finished: boolean;
+  playerId?: string;
+  playerName?: string;
+  startedAt: number;
   touchedAt: number;
 }
 
@@ -32,6 +37,8 @@ setInterval(() => {
 const NewGameSchema = z.object({
   variant: z.enum(VARIANTS).default('classic'),
   hardMode: z.boolean().default(false),
+  playerId: z.string().min(1).max(64).optional(),
+  playerName: z.string().trim().max(16).optional(),
 });
 const GuessSchema = z.object({ guess: z.string().trim() });
 
@@ -41,10 +48,11 @@ router.post('/', (req, res) => {
   const parsed = NewGameSchema.safeParse(req.body ?? {});
   if (!parsed.success) return fail(res, 400, 'BAD_REQUEST', 'Invalid game options');
 
-  const { variant } = parsed.data;
+  const { variant, playerId, playerName } = parsed.data;
   const hardMode = variant === 'classic' && parsed.data.hardMode;
   const gameId = randomUUID();
-  games.set(gameId, { word: getRandomWord(), variant, hardMode, guesses: [], finished: false, touchedAt: Date.now() });
+  const now = Date.now();
+  games.set(gameId, { word: getRandomWord(), variant, hardMode, guesses: [], finished: false, playerId, playerName: playerName || undefined, startedAt: now, touchedAt: now });
 
   return ok<SoloGame>(res, { gameId, variant, hardMode, maxGuesses: MAX_GUESSES[variant] }, 201);
 });
@@ -69,6 +77,7 @@ router.post('/:gameId/guess', (req, res) => {
   game.guesses.push(evaluated);
   game.touchedAt = Date.now();
   game.finished = isCorrect || game.guesses.length >= MAX_GUESSES[game.variant];
+  if (game.finished) saveResult(game, isCorrect);
 
   return ok<SoloGuessResponse>(res, {
     guess: evaluated,
@@ -78,5 +87,21 @@ router.post('/:gameId/guess', (req, res) => {
     ...(game.finished ? { answer: game.word } : {}),
   });
 });
+
+// Stats for the admin panel. Best-effort: a DB hiccup must never break the drill.
+function saveResult(game: SoloState, solved: boolean): void {
+  if (mongoose.connection.readyState !== 1) return;
+  SoloResult.create({
+    playerId: game.playerId,
+    playerName: game.playerName,
+    variant: game.variant,
+    hardMode: game.hardMode,
+    word: game.word,
+    guesses: game.guesses,
+    solved,
+    tries: game.guesses.length,
+    durationMs: Date.now() - game.startedAt,
+  }).catch((err: Error) => console.error('solo result save error:', err.message));
+}
 
 export default router;

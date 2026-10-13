@@ -58,6 +58,21 @@ The frontend shows a loading screen until it gets a healthy response. Hosts that
 take a while to wake up, so the loading screen stays up until then. While a tab is open, the
 frontend pings the endpoint every 5 minutes and again every time the home page loads.
 
+## Admin panel
+
+`/admin` shows stats, game history, a player leaderboard, records and per-player data.
+It's protected by NextAuth with a single admin login taken from env vars:
+
+| Where | Variable | Notes |
+|-------|----------|-------|
+| Frontend | `ADMIN_PASSWORD` | Required. Without it nobody can sign in |
+| Frontend | `ADMIN_USERNAME` | Optional, defaults to `admin` |
+| Frontend | `NEXTAUTH_SECRET` | Any long random string (`openssl rand -base64 32`) |
+| Frontend | `NEXTAUTH_URL` | Your site URL (set automatically on Vercel) |
+| Frontend + server | `ADMIN_API_KEY` | The same long random string on both. The Next.js server sends it to Express, so it never reaches the browser |
+
+Solo drills are recorded from this release on. Games from before it count as Classic.
+
 ## How to Play
 
 1. Enter your name and click **Create Room** or **Join Room**

@@ -7,6 +7,7 @@ import ToastContainer, { useToasts } from '@/components/Toast';
 import VariantPicker, { VARIANT_INFO } from '@/components/VariantPicker';
 import { Switch } from '@/components/ui/switch';
 import { ApiError } from '@/lib/api';
+import { getPlayerId, getSavedName } from '@/lib/player';
 import { useNewSoloGame, useSoloGuess } from '@/lib/queries';
 import { cycleMark, marksToKeyStates, type BoardGuess, type TileMarks } from '@/lib/types';
 import { checkHardMode, getKeyStates } from '@shared/wordle';
@@ -84,7 +85,7 @@ export default function SoloPage() {
 
   const startGame = useCallback((v: Variant, hm: boolean) => {
     newGame.mutate(
-      { variant: v, hardMode: v === 'classic' && hm },
+      { variant: v, hardMode: v === 'classic' && hm, playerId: getPlayerId(), playerName: getSavedName() || undefined },
       {
         onSuccess: (g) => {
           setGame(g);

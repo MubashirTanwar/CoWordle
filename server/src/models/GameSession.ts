@@ -1,4 +1,5 @@
 import mongoose, { type HydratedDocument, type InferSchemaType } from 'mongoose';
+import { VARIANTS } from '../shared/types';
 
 const guessSchema = new mongoose.Schema(
   {
@@ -28,6 +29,8 @@ const roundSchema = new mongoose.Schema({
 const gameSessionSchema = new mongoose.Schema(
   {
     roomCode: String,
+    variant: { type: String, enum: VARIANTS, default: 'classic' },
+    hardMode: { type: Boolean, default: false },
     rounds: [roundSchema],
     finalScores: [
       {
@@ -39,6 +42,9 @@ const gameSessionSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+gameSessionSchema.index({ createdAt: -1 });
+gameSessionSchema.index({ 'rounds.playerResults.playerId': 1 });
 
 export type GameSessionDoc = HydratedDocument<InferSchemaType<typeof gameSessionSchema>>;
 
