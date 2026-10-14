@@ -431,11 +431,8 @@ router.get('/games', async (req, res) => {
   return ok<Paged<GameListItem>>(res, { items: docs.map(toGameListItem), page, pageSize, total });
 });
 
-router.get('/games/:id', async (req, res) => {
-  if (!mongoose.isValidObjectId(req.params.id)) return fail(res, 404, 'NOT_FOUND', 'Game not found');
-  const s = await GameSession.findById(req.params.id).lean<LeanSession>();
-  if (!s) return fail(res, 404, 'NOT_FOUND', 'Game not found');
-  return ok<GameDetail>(res, {
+function toGameDetail(s: LeanSession): GameDetail {
+  return {
     ...toGameListItem(s),
     rounds: (s.rounds ?? []).map((r) => ({
       roundNumber: r.roundNumber ?? 0,
@@ -452,7 +449,40 @@ router.get('/games/:id', async (req, res) => {
         }))
         .sort((a, b) => b.points - a.points),
     })),
-  });
+  };
+}
+
+router.get('/games/:id', async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return fail(res, 404, 'NOT_FOUND', 'Game not found');
+  const s = await GameSession.findById(req.params.id).lean<LeanSession>();
+  if (!s) return fail(res, 404, 'NOT_FOUND', 'Game not found');
+  return ok<GameDetail>(res, toGameDetail(s));
+});
+
+// Rebuild a finished game's final scores from its round results (the source of
+// truth), e.g. after a bad manual edit. Keeps everyone's names, re-sorts.
+router.post('/games/:id/recompute', async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) return fail(res, 404, 'NOT_FOUND', 'Game not found');
+  const session = await GameSession.findById(req.params.id);
+  if (!session) return fail(res, 404, 'NOT_FOUND', 'Game not found');
+  if (!session.finalScores.length) return fail(res, 409, 'NOT_FINISHED', 'Only finished games have final scores');
+
+  const scores = new Map<string, { playerId: string; playerName: string; totalPoints: number }>();
+  for (const f of session.finalScores) {
+    if (f.playerId) scores.set(f.playerId, { playerId: f.playerId, playerName: f.playerName ?? '', totalPoints: 0 });
+  }
+  for (const r of session.rounds) {
+    for (const pr of r.playerResults) {
+      if (!pr.playerId) continue;
+      const cur = scores.get(pr.playerId) ?? { playerId: pr.playerId, playerName: pr.playerName ?? '', totalPoints: 0 };
+      cur.totalPoints += pr.points ?? 0;
+      scores.set(pr.playerId, cur);
+    }
+  }
+  session.set('finalScores', [...scores.values()].sort((a, b) => b.totalPoints - a.totalPoints));
+  await session.save();
+
+  return ok<GameDetail>(res, toGameDetail(session.toObject() as unknown as LeanSession));
 });
 
 router.get('/players', async (req, res) => {

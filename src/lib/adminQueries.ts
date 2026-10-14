@@ -1,5 +1,5 @@
 'use client';
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import type {
   AdminOverview,
@@ -56,5 +56,17 @@ export function useAdminRecords() {
   return useQuery({
     queryKey: ['admin', 'records'],
     queryFn: () => api.get<AdminRecords>('/admin/records'),
+  });
+}
+
+/** Rebuild a game's final scores from its rounds, then refresh everything that shows them. */
+export function useRecomputeGame(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.post<GameDetail>(`/admin/games/${encodeURIComponent(id)}/recompute`),
+    onSuccess: (game) => {
+      qc.setQueryData(['admin', 'game', id], game);
+      qc.invalidateQueries({ queryKey: ['admin'] });
+    },
   });
 }

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { useAdminGame } from '@/lib/adminQueries';
+import { useAdminGame, useRecomputeGame } from '@/lib/adminQueries';
 import { Badge, Card, ErrorBox, GuessRow, Loading, PlayerLink, VariantBadge, fmtDate } from '@/components/admin/ui';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -9,9 +9,15 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 export default function AdminGamePage() {
   const { id } = useParams<{ id: string }>();
   const { data: game, isLoading, error } = useAdminGame(id);
+  const recompute = useRecomputeGame(id);
 
   if (isLoading) return <Loading />;
   if (error || !game) return <ErrorBox error={error} />;
+
+  // Final totals should always equal the sum of each player's round points
+  const roundTotals = new Map<string, number>();
+  for (const r of game.rounds) for (const x of r.results) roundTotals.set(x.playerId, (roundTotals.get(x.playerId) ?? 0) + x.points);
+  const mismatched = game.finished ? game.players.filter((p) => (roundTotals.get(p.playerId) ?? 0) !== p.totalPoints) : [];
 
   return (
     <div className="space-y-4">
@@ -23,6 +29,23 @@ export default function AdminGamePage() {
         {!game.finished && <Badge>Abandoned</Badge>}
         <span className="text-sm text-[#818384]">{fmtDate(game.createdAt)} · {game.roundsPlayed} rounds</span>
       </div>
+
+      {mismatched.length > 0 && (
+        <div className="bg-[#b59f3b]/15 border border-[#b59f3b] rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <p className="text-sm">
+            Final scores don&apos;t match the rounds:{' '}
+            {mismatched.map((p) => `${p.playerName} has ${p.totalPoints}, rounds add up to ${roundTotals.get(p.playerId) ?? 0}`).join('; ')}.
+          </p>
+          <button
+            onClick={() => recompute.mutate()}
+            disabled={recompute.isPending}
+            className="bg-[#b59f3b] hover:brightness-110 disabled:opacity-50 text-white font-bold px-4 py-2 rounded text-xs uppercase tracking-widest whitespace-nowrap"
+          >
+            {recompute.isPending ? 'Fixing…' : 'Recalculate scores'}
+          </button>
+        </div>
+      )}
+      {recompute.error && <ErrorBox error={recompute.error} />}
 
       <Card title="Final standings">
         <div className="divide-y divide-[#2a2a2b]">

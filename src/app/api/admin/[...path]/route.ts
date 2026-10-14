@@ -17,16 +17,17 @@ function error(status: number, code: string, message: string) {
   );
 }
 
-export async function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+async function proxy(req: NextRequest, path: string[], method: 'GET' | 'POST') {
   const session = await getServerSession(authOptions);
   if (session?.user?.role !== 'admin') return error(401, 'UNAUTHORIZED', 'Sign in as admin');
 
   const key = process.env.ADMIN_API_KEY;
   if (!key) return error(503, 'ADMIN_DISABLED', 'ADMIN_API_KEY is not set on the frontend');
 
-  const path = params.path.map(encodeURIComponent).join('/');
+  const target = path.map(encodeURIComponent).join('/');
   try {
-    const res = await fetch(`${SERVER_URL}/api/admin/${path}${req.nextUrl.search}`, {
+    const res = await fetch(`${SERVER_URL}/api/admin/${target}${req.nextUrl.search}`, {
+      method,
       headers: { 'x-admin-key': key },
       cache: 'no-store',
     });
@@ -37,4 +38,12 @@ export async function GET(req: NextRequest, { params }: { params: { path: string
   } catch {
     return error(502, 'BACKEND_UNREACHABLE', 'Could not reach the game server');
   }
+}
+
+export function GET(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return proxy(req, params.path, 'GET');
+}
+
+export function POST(req: NextRequest, { params }: { params: { path: string[] } }) {
+  return proxy(req, params.path, 'POST');
 }
